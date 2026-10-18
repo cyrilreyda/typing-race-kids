@@ -348,7 +348,14 @@
   .race-info:empty{display:none;}
   .exit-btn{position:absolute; top:12px; right:12px; z-index:2; width:34px; height:34px; border-radius:50%; border:1.5px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:16px; font-weight:700; line-height:1; cursor:pointer;}
   .exit-btn:hover{border-color:var(--coral); color:var(--coral);}
-  .race-panel .stats{padding-right:44px;}
+  /* Під час заїзду статистику не показуємо: числа, що змінюються, відволікають; вона є на екрані результату */
+  .race-panel .stats{display:none;}
+  .hint-row{display:flex; align-items:center; gap:10px; margin:12px 0 10px;}
+  .hint-row .hint{flex:1; margin:0;}
+  .hint-row .exit-btn{position:static; flex:none;}
+  /* Довідка для вчителя: які налаштування з адреси діють */
+  .teacher-note{margin-top:10px; text-align:center; font-size:12.5px; color:var(--ink-soft); opacity:.8;}
+  .teacher-note:empty{display:none;}
   .pick .label:last-child{padding-bottom:10px;}
 
   /* ---------- Змагання ---------- */
@@ -505,7 +512,6 @@
 
   <!-- Заїзд -->
   <section class="panel race-panel" id="race" hidden>
-    <button class="exit-btn" id="exitBtn" type="button" title="Вийти із заїзду (Esc)" aria-label="Вийти із заїзду">✕</button>
     <div class="race-info" id="raceInfo"></div>
     <div class="stats">
       <span class="stat"><b id="sTime">0:00</b>час</span>
@@ -514,12 +520,16 @@
       <span class="stat"><b id="sAcc">100</b>% точність</span>
     </div>
     <div class="text-box" id="textBox"></div>
-    <div class="hint" id="hint"></div>
+    <div class="hint-row">
+      <div class="hint" id="hint"></div>
+      <button class="exit-btn" id="exitBtn" type="button" title="Вийти із заїзду (Esc)" aria-label="Вийти із заїзду">✕</button>
+    </div>
     <div class="kb-wrap">
       <div class="tip" id="tip" hidden></div>
       <div class="alert" id="alert" role="alert" hidden></div>
       <div class="kb" id="kb" aria-hidden="true"></div>
     </div>
+    <div class="teacher-note" id="teacherNote"></div>
     <div class="pause-note"><div class="pause-card"><div class="pause-ico">⏸</div><div class="pause-title">Пауза</div><div class="pause-text">👆 Клацни тут, щоб продовжити</div></div></div>
     <input class="typer" id="typer" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Поле для друку">
   </section>
@@ -1607,7 +1617,9 @@ function startRace(opts){
   const c = race.comp;
   document.getElementById('raceInfo').textContent = c
     ? `🏆 ${c.name} · етап ${profile.runs[c.id].stage + 1}/${c.stages.length} · 🎯 від ${c.minAcc}%`
-    : race.noBot ? '🧘 Тренування без робота' : TEACHER.cpm ? `🤖 Робот: ${TEACHER.cpm} зн/хв` : '';
+    : '';
+  document.getElementById('teacherNote').textContent = c ? ''
+    : race.noBot ? 'Налаштування вчителя: тренування без робота' : TEACHER.cpm ? `Налаштування вчителя: робот ${TEACHER.cpm} зн/хв` : '';
   renderText();
   spans[0].classList.add('cur');
   showNextKey(race.text[0]);
