@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Клавіатурні перегони для 2–3 класів · Лабораторія</title>
+<title>Клавіатурні перегони Junior · Лабораторія</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -243,6 +243,23 @@
   .unlock b{font-family:'Baloo 2',sans-serif; font-size:17px;}
   .unlock .track-prev{border-radius:var(--radius-s); margin-top:8px;}
   .win-actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:6px;}
+  /* Кнопки вікна результату завжди видно: вони прилипають до низу вікна, а вміст над ними прокручується */
+  #overlay .win{max-height:calc(100vh - 32px); padding-bottom:0;}
+  #overlay .win-actions{position:sticky; bottom:0; z-index:1; background:var(--surface); padding:12px 0 22px; box-shadow:0 -12px 12px -12px rgba(27,27,58,.25);}
+  /* Невисокий екран: усе компактніше, нові автівки й траси — в один ряд */
+  @media (max-height:780px){
+    #overlay .win{padding-top:16px;}
+    #overlay .win .big{font-size:40px; margin-bottom:2px;}
+    #overlay .win h2{font-size:22px;}
+    #overlay .stars{font-size:32px; margin:6px 0 8px;}
+    #overlay .result{margin-bottom:8px;}
+    #overlay .result div{padding:4px 12px;}
+    #overlay .result b{font-size:22px;}
+    #overlay .unlock-list{grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));}
+    #overlay .unlock-item{flex-direction:column; gap:4px; text-align:center; font-size:13px;}
+    #overlay .unlock-item .thumb{width:84px;}
+    #overlay .unlock-item .track-prev{height:36px;}
+  }
 
   /* ---------- Вкладки ---------- */
   .tabs{display:flex; gap:6px; flex-wrap:wrap; margin:-4px 0 18px; padding-bottom:12px; border-bottom:1.5px solid var(--line);}
@@ -449,7 +466,7 @@
 
 <div class="topbar"><div class="topbar-inner">
   <a class="back-link" href="https://cikavo.me/labs/">← Лабораторія</a>
-  <span class="game-title">Клавіатурні перегони · 2–3 клас</span>
+  <span class="game-title">Клавіатурні перегони · Junior</span>
   <div class="neuron-counter" title="Нейрончики — твій досвід. За них відкриваються траси й автівки.">
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <line x1="16.2" y1="12" x2="20.3" y2="12" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="20.3" cy="12" r="1.2" fill="#FFC93C"/>
