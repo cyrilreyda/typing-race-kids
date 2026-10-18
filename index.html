@@ -68,9 +68,7 @@
   .car svg{position:relative; display:block; width:100%; height:auto; overflow:visible;}
   .car .tag{position:absolute; bottom:calc(100% - 4px); left:50%; transform:translateX(-50%); white-space:nowrap;
     font-family:'Baloo 2',sans-serif; font-weight:700; font-size:11.5px; line-height:1; padding:3px 8px 2px; border-radius:999px; background:rgba(255,255,255,.92); color:var(--ink);}
-  .wheel{transform-box:fill-box; transform-origin:center; animation:spin .32s linear infinite paused;}
-  .car.moving .wheel{animation-play-state:running;}
-  @keyframes spin{to{transform:rotate(360deg);}}
+  .wheel{transform-box:fill-box; transform-origin:center;}   /* кут задає rollWheels(): колеса котяться разом з автівкою */
   /* Пил з-під коліс: напівпрозорі хмаринки позаду, поки автівка їде; з'являються й зникають плавно */
   .car .dust{position:absolute; left:-4%; bottom:4%; width:32%; height:36%; opacity:0; transition:opacity .7s ease; pointer-events:none;}
   .car.moving .dust{opacity:1;}
@@ -1239,6 +1237,19 @@ function drawCars(model = settings.model){
   carMe.innerHTML = DUST + carSVG(model, myColor, 'me') + nameTag(player || 'Ти', settings.badge);
   carBot.innerHTML = DUST + carSVG(model, botColor, 'bot') + `<span class="tag">🤖 Робот</span>`;
 }
+// Колеса котяться без проковзування: кут повороту = пройдена на екрані відстань / радіус колеса.
+// Тож швидкість обертання відповідає швидкості автівки, а коли автівка стоїть — стоять і колеса
+function rollWheels(){
+  for(const car of [carMe, carBot]){
+    const x = car.getBoundingClientRect().left;
+    if(car._x != null && x !== car._x){
+      const r = car.offsetWidth * 10 / 120;   // радіус колеса в пікселях (у SVG — 10 з ширини 120)
+      car._angle = ((car._angle || 0) + (x - car._x) / r * 180 / Math.PI) % 360;
+      car.querySelectorAll('.wheel').forEach(w=>w.style.transform = `rotate(${car._angle}deg)`);
+    }
+    car._x = x;
+  }
+}
 function setP(car, p){ car.style.setProperty('--p', Math.min(1, p)); }
 
 // Під час заїзду траса стискається, щоб панель із текстом і клавіатурою вміщалась у вікно:
@@ -1633,6 +1644,7 @@ function startRace(opts){
   buildKeyboard();
   drawCars(opts.model);
   setP(carMe, 0); setP(carBot, 0);
+  carMe._x = carBot._x = null;   // колеса починають котитися з першого кадру заїзду
   carBot.hidden = race.noBot;
   const c = race.comp;
   document.getElementById('raceInfo').textContent = c
@@ -1695,6 +1707,7 @@ function loop(now){
   const raw = now - race.lastFrame;
   const dt = Math.min(0.25, raw / 1000);
   race.lastFrame = now;
+  rollWheels();
   if(race.phase === 'race' && (race.hold.focus || race.hold.alert)){   // пауза: годинник і робот стоять
     race.startT += raw;
     if(race.lastKeyT) race.lastKeyT += raw;
