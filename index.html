@@ -142,14 +142,39 @@
   .ch.ok.miss{color:var(--coral); opacity:.8;}
   .ch.cur{background:var(--yellow); box-shadow:0 0 0 2px var(--yellow);}
   .ch.err{background:var(--coral); color:#fff; box-shadow:0 0 0 2px var(--coral);}
-  .text-box .blur-note{position:absolute; inset:0; display:none; align-items:center; justify-content:center; border-radius:var(--radius-m); background:rgba(251,250,254,.85);
-    font-family:'Baloo 2',sans-serif; font-size:18px; font-weight:700; color:var(--teal-dark);}
-  .race-panel.unfocused .blur-note{display:flex;}
 
   .hint{display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; margin:12px 0 10px; font-size:14px; color:var(--ink-soft); min-height:28px;}
   .hint .kbd{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px; color:var(--ink); background:var(--surface); border:1.5px solid var(--line); border-bottom-width:3px; border-radius:7px; padding:0 9px; min-width:30px; text-align:center;}
   .hint .dot{width:12px; height:12px; border-radius:50%; display:inline-block; vertical-align:-1px; margin-right:4px; border:1.5px solid rgba(27,27,58,.25);}
-  .tip{background:#FFF4D6; color:#8A6200; border-radius:var(--radius-s); padding:6px 12px; font-size:14px; font-weight:700; margin-bottom:10px;}
+  /* Підказки лежать поверх клавіатури й не змінюють висоту панелі — інакше траса стискалася б посеред заїзду */
+  .kb-wrap{position:relative;}
+  .tip{position:absolute; left:50%; top:-6px; z-index:3; transform:translateX(-50%); width:max-content; max-width:calc(100% - 16px); text-align:center;
+    background:#FFF4D6; color:#8A6200; border:2px solid var(--yellow); border-radius:var(--radius-s); padding:8px 16px; font-size:17px; font-weight:800; box-shadow:0 6px 18px rgba(27,27,58,.15);}
+  /* Не та мова чи Caps Lock: картка накриває клавіатуру, доки учень не натисне правильну літеру */
+  .alert{position:absolute; inset:-4px; z-index:4; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; text-align:center;
+    background:#FFF1EC; border:3px solid var(--coral); border-radius:var(--radius-m); box-shadow:0 8px 24px rgba(27,27,58,.18);}
+  .alert[hidden]{display:none;}
+  .alert.shake{animation:shake .45s ease;}
+  @keyframes shake{20%,60%{transform:translateX(-8px);} 40%,80%{transform:translateX(8px);}}
+  .alert-title{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:clamp(20px, 3.4vw, 28px); line-height:1.2; color:#C2410C;}
+  .alert-row{display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; font-size:clamp(15px, 2.4vw, 19px); font-weight:700; color:var(--ink);}
+  .alert-note{font-size:13px; color:var(--ink-soft);}
+  .alert .cap{display:inline-flex; align-items:center; gap:6px; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:clamp(16px, 2.6vw, 21px); background:#fff; color:var(--ink);
+    border:2px solid var(--ink); border-bottom-width:5px; border-radius:9px; padding:1px 12px; animation:cap-press 1.4s ease-in-out infinite;}
+  @keyframes cap-press{0%,55%,100%{transform:none; border-bottom-width:5px;} 25%,40%{transform:translateY(3px); border-bottom-width:2px; background:var(--yellow);}}
+  .alert .or{font-weight:600; color:var(--ink-soft);}
+  .alert .lamp{width:9px; height:9px; border-radius:50%; background:#3DDC84; box-shadow:0 0 6px #3DDC84;}
+  .lang-bar{display:inline-flex; align-items:center; gap:8px; background:#1B1B3A; color:#fff; border-radius:8px; padding:3px 10px; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px;}
+  .lang-bar s{opacity:.55;}
+  .lang-bar i{font-style:normal; background:var(--teal); border-radius:5px; padding:0 6px;}
+  /* Пауза, коли сторінка втратила фокус */
+  .pause-note{position:absolute; inset:0; z-index:5; display:none; align-items:center; justify-content:center; border-radius:inherit; background:rgba(27,27,58,.55); cursor:pointer;}
+  .race-panel.unfocused .pause-note{display:flex;}
+  .pause-card{background:var(--surface); border:3px solid var(--yellow); border-radius:var(--radius-l); padding:20px 32px; text-align:center; box-shadow:0 12px 32px rgba(27,27,58,.3); animation:pause-pulse 1.4s ease-in-out infinite;}
+  @keyframes pause-pulse{50%{transform:scale(1.05);}}
+  .pause-ico{font-size:44px; line-height:1;}
+  .pause-title{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:32px; color:var(--ink);}
+  .pause-text{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:22px; color:var(--teal-dark);}
 
   /* Екранна клавіатура */
   .kb{--k:min(50px, calc((100vw - 150px) / 13.5));   /* найширший — нижній ряд: 10 клавіш + 2 Shift по 1.75 */ display:flex; flex-direction:column; align-items:center; gap:5px; user-select:none;}
@@ -483,10 +508,14 @@
       <span class="stat"><b id="sErr">0</b>помилок</span>
       <span class="stat"><b id="sAcc">100</b>% точність</span>
     </div>
-    <div class="text-box" id="textBox"><div class="blur-note">Клацни тут, щоб друкувати</div></div>
+    <div class="text-box" id="textBox"></div>
     <div class="hint" id="hint"></div>
-    <div class="tip" id="tip" hidden></div>
-    <div class="kb" id="kb" aria-hidden="true"></div>
+    <div class="kb-wrap">
+      <div class="tip" id="tip" hidden></div>
+      <div class="alert" id="alert" role="alert" hidden></div>
+      <div class="kb" id="kb" aria-hidden="true"></div>
+    </div>
+    <div class="pause-note"><div class="pause-card"><div class="pause-ico">⏸</div><div class="pause-title">Пауза</div><div class="pause-text">👆 Клацни тут, щоб продовжити</div></div></div>
     <input class="typer" id="typer" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Поле для друку">
   </section>
 
@@ -1057,6 +1086,18 @@ function renderHUD(pop){
 
 /* ================= Звук ================= */
 const soundOn = true;
+// Гучний режим для класу: голосніше й більше ефектів (хлопавка, фанфари, конфеті).
+// Учням його не показуємо: вмикає вчитель адресою ?zvuk=klas (вимикає ?zvuk=tykho) або Ctrl+Alt+Z.
+// Режим запам'ятовується на цьому пристрої
+const SOUND_KEY = 'typing-race-kids-sound';
+let loud = false;
+try{ loud = localStorage.getItem(SOUND_KEY) === 'loud'; }catch(e){}
+function setLoud(on){
+  loud = on;
+  try{ localStorage.setItem(SOUND_KEY, on ? 'loud' : 'quiet'); }catch(e){}
+  showToast(on ? '🔊 Гучний режим для класу' : '🔈 Тихий режим');
+  if(on) celebrate(false);
+}
 
 let actx = null;
 function tone(freq, dur=0.12, type='sine', vol=0.07, delay=0){
@@ -1066,13 +1107,44 @@ function tone(freq, dur=0.12, type='sine', vol=0.07, delay=0){
     const t = actx.currentTime + delay;
     const o = actx.createOscillator(), g = actx.createGain();
     o.type = type; o.frequency.value = freq;
-    g.gain.setValueAtTime(vol, t);
+    g.gain.setValueAtTime(loud ? Math.min(.3, vol * 3) : vol, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g).connect(actx.destination);
     o.start(t); o.stop(t + dur + 0.02);
   }catch(e){}
 }
 const fanfare = ()=>[523,659,784,1047].forEach((f,i)=>tone(f, .22, 'triangle', .08, i*.12));
+// Шум — для хлопавки
+function noise(dur, vol, delay = 0, freq = 2500){
+  if(!soundOn) return;
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = actx.currentTime + delay, n = Math.ceil(actx.sampleRate * dur);
+    const buf = actx.createBuffer(1, n, actx.sampleRate), d = buf.getChannelData(0);
+    for(let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = .7;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(actx.destination);
+    src.start(t);
+  }catch(e){}
+}
+// Ефекти гучного режиму
+const popper = (delay = 0)=>{ noise(.06, .5, delay, 1200); tone(90, .12, 'sine', .1, delay); noise(.6, .12, delay + .05, 4500); };
+function bigFanfare(delay = 0){
+  let t = delay;
+  for(const [f, d] of [[392,.12],[523,.12],[659,.12],[784,.3],[659,.14],[784,.7]]){
+    tone(f, d + .05, 'sawtooth', .035, t); tone(f * 2, d, 'triangle', .03, t); t += d;
+  }
+  [523, 659].forEach(f=>tone(f, .7, 'triangle', .03, t - .7));   // акорд під останню ноту
+}
+const sadTrombone = ()=>[392, 370, 349, 330].forEach((f, i)=>tone(f, i < 3 ? .3 : .8, 'sawtooth', .03, i * .32));
+const sparkle = (delay = 0)=>[1319, 1568, 2093, 2637].forEach((f, i)=>tone(f, .18, 'sine', .04, delay + i * .07));
+function celebrate(big){
+  popper(); bigFanfare(.1); confetti(big ? 220 : 140);
+  if(big){ popper(.9); popper(1.4); setTimeout(()=>confetti(160), 900); }
+}
 
 
 /* ================= Траса й автівки на екрані ================= */
@@ -1147,7 +1219,8 @@ addEventListener('resize', fitTrack);
 /* ================= Гараж ================= */
 const setupEl = document.getElementById('setup');
 const raceEl = document.getElementById('race');
-new ResizeObserver(()=>fitTrack()).observe(raceEl);   // текст заїзду переноситься по-різному — висота панелі змінюється
+// текст заїзду переноситься по-різному — висота панелі змінюється; під час самого заїзду траса лишається незмінною
+new ResizeObserver(()=>{ if(!race || race.phase === 'countdown') fitTrack(); }).observe(raceEl);
 
 function seg(el, items, cur, onPick){
   el.innerHTML = items.map(it=>`<button type="button" data-id="${it.id}" class="${it.id===cur?'on':''}" ${it.disabled?'disabled':''}>${it.html}</button>`).join('');
@@ -1503,7 +1576,8 @@ function startRace(opts){
     text: makeText(opts.lang, level), track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
     pos:0, errors:0, missed:false, phase:'countdown', startT:0, lastKeyT:0,
     botCpm:opts.cpm, botChars:0, seed:Math.random()*10, lastFrame:0,
-    botDone:false, assist:!opts.comp?.pro, assistK:1, botDelay:opts.comp?.pro ? 0 : ASSIST.delay
+    botDone:false, assist:!opts.comp?.pro, assistK:1, botDelay:opts.comp?.pro ? 0 : ASSIST.delay,
+    hold:{ focus:false, alert:false }   // пауза: сторінка без фокусу або підказка про мову чи Caps Lock
   };
   setupEl.hidden = true;
   shareView.hidden = true;
@@ -1522,6 +1596,7 @@ function startRace(opts){
   showNextKey(race.text[0]);
   updateStats(0);
   tipEl.hidden = true;
+  alertEl.hidden = true;
   typer.value = '';
   typer.focus();   // фокус одразу в обробнику кліку — щоб на планшеті з'явилась клавіатура
   window.scrollTo({ top:0, behavior:'smooth' });
@@ -1568,8 +1643,16 @@ function go(){
 
 function loop(now){
   if(!race || race.phase === 'setup') return;
-  const dt = Math.min(0.25, (now - race.lastFrame) / 1000);
+  const raw = now - race.lastFrame;
+  const dt = Math.min(0.25, raw / 1000);
   race.lastFrame = now;
+  if(race.phase === 'race' && (race.hold.focus || race.hold.alert)){   // пауза: годинник і робот стоять
+    race.startT += raw;
+    if(race.lastKeyT) race.lastKeyT += raw;
+    carBot.classList.remove('moving'); carMe.classList.remove('moving');
+    rafId = requestAnimationFrame(loop);
+    return;
+  }
   const total = race.text.length;
   if(race.botChars < total){
     const t = (now - race.startT) / 1000;
@@ -1611,6 +1694,42 @@ function showTip(msg){
   tipTimer = setTimeout(()=>tipEl.hidden = true, 3500);
 }
 
+// Не та мова чи Caps Lock: велика картка з інструкцією поверх клавіатури; заїзд стоїть, доки учень не натисне правильну літеру
+const alertEl = document.getElementById('alert');
+let capsOn = null;   // справжній стан Caps Lock з останнього натискання (null — невідомо, наприклад на планшеті)
+function showAlert(kind){
+  if(alertEl.hidden || alertEl.dataset.kind !== kind){
+    const want = race.lang === 'uk' ? 'УКР' : 'ENG', have = race.lang === 'uk' ? 'ENG' : 'УКР';
+    const cap = k => `<span class="cap">${k}</span>`;
+    alertEl.innerHTML = kind === 'lang'
+      ? `<div class="alert-title">🌐 Не та мова клавіатури!</div>
+         <div class="alert-row">Унизу екрана, біля годинника, має бути <span class="lang-bar"><s>${have}</s> → <i>${want}</i></span></div>
+         <div class="alert-row">Натисни разом ${cap('Alt')} + ${cap('Shift')} <span class="or">або</span> ${cap('⊞ Win')} + ${cap('Пробіл')}</div>
+         <div class="alert-note">На Mac: Control + Пробіл</div>`
+      : kind === 'caps'
+      ? `<div class="alert-title">🔠 Літери великі: увімкнено Caps Lock</div>
+         <div class="alert-row">Натисни один раз ${cap('<i class="lamp"></i>Caps Lock')} — вогник має згаснути</div>`
+      : `<div class="alert-title">🔠 Літера вийшла великою</div>
+         <div class="alert-row">Відпусти ${cap('Shift')} і натисни літеру ще раз</div>`;
+    alertEl.dataset.kind = kind;
+  }
+  alertEl.hidden = false;
+  alertEl.classList.remove('shake'); void alertEl.offsetWidth; alertEl.classList.add('shake');
+  race.hold.alert = true;
+  tone(440, .12, 'triangle', .06); tone(330, .2, 'triangle', .06, .13);
+}
+function hideAlert(){
+  alertEl.hidden = true;
+  if(race) race.hold.alert = false;
+}
+const readCaps = e=>{
+  if(!e.getModifierState) return;
+  capsOn = e.getModifierState('CapsLock');
+  if(!capsOn && race && !alertEl.hidden && alertEl.dataset.kind === 'caps') hideAlert();   // Caps Lock вимкнули — продовжуємо
+};
+document.addEventListener('keydown', readCaps, true);
+document.addEventListener('keyup', readCaps, true);
+
 const isCyr = c => /[а-яіїєґ]/i.test(c);
 const isLat = c => /[a-z]/i.test(c);
 
@@ -1622,6 +1741,7 @@ function handleChar(ch){
   if(/[“”„]/.test(ch) && need === '"') ch = '"';
   flashKey(ch);
   if(ch === need){
+    if(race.hold.alert) hideAlert();
     spans[race.pos].classList.remove('cur', 'err');
     spans[race.pos].classList.add('ok');
     if(race.missed) spans[race.pos].classList.add('miss');
@@ -1635,9 +1755,9 @@ function handleChar(ch){
     return;
   }
   // Неправильна розкладка чи Caps Lock — підказуємо, але помилкою не рахуємо
-  if(isCyr(need) && isLat(ch)) return showTip('Схоже, увімкнена англійська розкладка. Перемкни на українську (Alt+Shift або Win+Пробіл; на Mac — Ctrl+Пробіл).');
-  if(race.lang === 'en' && !isCyr(need) && isCyr(ch)) return showTip('Схоже, увімкнена українська розкладка. Перемкни на англійську (Alt+Shift або Win+Пробіл; на Mac — Ctrl+Пробіл).');
-  if(ch.toLowerCase() === need && ch !== need) return showTip('Літера вийшла великою. Може, увімкнено Caps Lock?');
+  if(isCyr(need) && isLat(ch)) return showAlert('lang');
+  if(race.lang === 'en' && !isCyr(need) && isCyr(ch)) return showAlert('lang');
+  if(ch.toLowerCase() === need && ch !== need) return showAlert(capsOn === false ? 'shift' : 'caps');
   race.errors++;
   race.missed = true;
   const s = spans[race.pos];
@@ -1653,10 +1773,32 @@ typer.addEventListener('input', ()=>{
   typer.value = '';
   for(const ch of v) handleChar(ch);
 });
-raceEl.addEventListener('mousedown', e=>{ if(e.target !== typer){ e.preventDefault(); typer.focus(); } });
-raceEl.addEventListener('touchend', ()=>typer.focus());
-typer.addEventListener('blur', ()=>raceEl.classList.add('unfocused'));
-typer.addEventListener('focus', ()=>raceEl.classList.remove('unfocused'));
+// Фокус: поки йде заїзд, усі натискання мають потрапляти в поле для друку.
+// Фокус пішов в інше місце сторінки — повертаємо мовчки. Пауза з великою підказкою — лише коли
+// сторінка зовсім втратила фокус (інше вікно, рядок адреси) або на планшеті сховалась клавіатура
+const isTouch = matchMedia('(pointer: coarse)').matches;
+const raceLive = () => race && (race.phase === 'race' || race.phase === 'countdown');
+function setLost(on){
+  raceEl.classList.toggle('unfocused', on);
+  if(race) race.hold.focus = on;
+}
+// Повернути фокус у поле; якщо воно вже у фокусі (подія focus не прийде) — просто зняти паузу
+function refocus(){ typer.focus(); if(document.activeElement === typer && document.hasFocus()) setLost(false); }
+raceEl.addEventListener('mousedown', e=>{ if(e.target !== typer){ e.preventDefault(); refocus(); } });
+raceEl.addEventListener('touchend', refocus);
+document.addEventListener('mousedown', e=>{ if(raceLive() && !raceEl.contains(e.target)){ e.preventDefault(); refocus(); } });
+typer.addEventListener('blur', ()=>setTimeout(()=>{
+  if(!raceLive() || document.activeElement === typer) return;
+  if(!isTouch && document.hasFocus()) typer.focus();
+  else setLost(true);
+}, 0));
+typer.addEventListener('focus', ()=>setLost(false));
+addEventListener('blur', ()=>{ if(raceLive()) setLost(true); });
+addEventListener('focus', ()=>{ if(raceLive() && !isTouch) refocus(); });
+// Натискання, коли фокус не в полі: повертаємо його, і літера потрапить у поле
+document.addEventListener('keydown', e=>{
+  if(raceLive() && document.activeElement !== typer && !e.ctrlKey && !e.altKey && !e.metaKey) typer.focus();
+}, true);
 
 
 let againAction = startFree, exitAction = toSetup;
@@ -1689,6 +1831,7 @@ function finish(){
 
   // Змагання
   let compHTML = '';
+  let bigWin = false;   // змагання завершено — найбільше свято
   const c = race.comp;
   againAction = startFree;
   let againLabel = '🏁 Ще заїзд';
@@ -1701,6 +1844,7 @@ function finish(){
       if(run.stage >= n){
         const result = { medal:medalOf(run.results), s:run.results, day:today(), m:race.model };
         const bonus = MEDAL_BONUS[result.medal] + COMPS.indexOf(c) * 5;
+        bigWin = true;
         gain += bonus;
         parts.push(`медаль +${bonus}`);
         const prev = profile.comps[c.id];
@@ -1767,7 +1911,9 @@ function finish(){
   bindLinkButtons(document.getElementById('wComp'));
 
   setTimeout(()=>{
-    if(won && !failed){ fanfare(); confetti(); } else tone(330, .3, 'triangle', .07);
+    if(won && !failed){ if(loud) celebrate(bigWin); else { fanfare(); confetti(); } }
+    else if(loud) sadTrombone(); else tone(330, .3, 'triangle', .07);
+    if(loud && (opened.length || proNow)) sparkle(1.6);
     overlay.classList.add('show');
     againBtn.focus();
   }, 700);
@@ -1775,6 +1921,8 @@ function finish(){
 
 function toSetup(){
   race = null;
+  raceEl.classList.remove('unfocused');
+  alertEl.hidden = true;
   cancelAnimationFrame(rafId);
   overlay.classList.remove('show');
   countdownEl.hidden = true;
@@ -1790,9 +1938,9 @@ function toSetup(){
   showTab(activeTab());
 }
 
-function confetti(){
+function confetti(n = 70){
   const colors = ['#6C5CE7','#16A3A0','#FF6B4A','#FFC93C','#FF5D9E','#2D9CDB'];
-  for(let i=0;i<70;i++){
+  for(let i=0;i<n;i++){
     const d = document.createElement('div');
     d.className = 'confetti';
     d.style.left = Math.random()*100 + 'vw';
@@ -2086,6 +2234,16 @@ function route(){
   else if(prof) showProfile(prof);
   else startGame();
 }
+// Прихований перемикач гучного режиму: ?zvuk=klas або ?zvuk=tykho (параметр одразу зникає з адреси) чи Ctrl+Alt+Z
+{
+  const q = new URLSearchParams(location.search), z = q.get('zvuk');
+  if(z === 'klas' || z === 'tykho'){
+    q.delete('zvuk');
+    history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
+    setLoud(z === 'klas');
+  }
+}
+document.addEventListener('keydown', e=>{ if(e.ctrlKey && e.altKey && e.code === 'KeyZ'){ e.preventDefault(); setLoud(!loud); } });
 route();
 window.addEventListener('hashchange', ()=>{ if(readResultLink() || readProfileLink()) route(); });
 </script>
