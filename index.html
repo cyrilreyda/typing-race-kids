@@ -173,6 +173,11 @@
   .pause-card{background:var(--surface); border:3px solid var(--yellow); border-radius:var(--radius-l); padding:20px 32px; text-align:center; box-shadow:0 12px 32px rgba(27,27,58,.3); animation:pause-pulse 1.4s ease-in-out infinite;}
   @keyframes pause-pulse{50%{transform:scale(1.05);}}
   .pause-ico{font-size:44px; line-height:1;}
+  /* Похвала за серію без помилок: спливає над правим краєм тексту */
+  .praise{position:absolute; right:10px; top:-18px; z-index:2; pointer-events:none; white-space:nowrap;
+    font-family:'Baloo 2',sans-serif; font-weight:800; font-size:20px; color:#fff; background:var(--teal); border:3px solid #fff; border-radius:999px;
+    padding:2px 16px; box-shadow:0 6px 16px rgba(27,27,58,.2); animation:praise 2.2s ease forwards;}
+  @keyframes praise{0%{opacity:0; transform:scale(.4) translateY(10px);} 12%{opacity:1; transform:scale(1.15);} 22%{transform:scale(1);} 80%{opacity:1;} 100%{opacity:0; transform:translateY(-12px);}}
   .pause-title{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:32px; color:var(--ink);}
   .pause-text{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:22px; color:var(--teal-dark);}
 
@@ -592,6 +597,8 @@ const TEXTS = {
   uk:{
     home:['два','дід','вода','лава','пара','двір','ліпа','фара','рада','права','лапа','відро','жало','діра','водопад',
           'папір','лід','овал','оладі','радів','жар','дрова','ода','поділ','плід','провід','дало'],
+    // Слова лише з літер основного й верхнього рядів (ЙЦУКЕНГШЩЗХЇ) — проміжний рівень для траси «Лондон»
+    top:['рука','нога','гора','нора','вода','друг','гра','лук','цукор','цукерка','їжак','їжа','шапка','шафа','город','дорога','пенал','ранок','зірка','лікар','кухар','пекар','лелека','вовк','курка','коза','корова','кенгуру','панда','папуга','пароплав','шарф','дзеркало','двері','підлога','вікно','кран','цегла','груша','горіх','кавун','горох','каша','поле','ліжко','акула','вухо','жук'],
     words:['кіт','сонце','миша','файл','папка','екран','клавіша','школа','урок','друг','книга','місто','весна','ранок',
            'хмара','річка','зошит','олівець','пісня','вікно','принтер','мережа','пароль','браузер','курсор','сайт','робот',
            'ракета','планета','зірка','дельфін','їжак','щастя','юнак','мрія','гра','код','піксель','дані','текст','кнопка','монітор'],
@@ -605,6 +612,7 @@ const TEXTS = {
   en:{
     home:['dad','sad','lad','add','ask','glass','flask','salad','hall','fall','all','gas','flag','half','shall','dash',
           'glad','has','had','lash','flash','gala','lag'],
+    top:['water','tree','house','apple','pear','horse','dog','frog','goat','sheep','tiger','hat','sofa','toy','kite','ship','fish','rose','red','yellow','purple','pig','egg','tea','sweet','gift','lake','road','door','roof','hello','happy','jelly','paper','pirate','shoes','great','hop','help'],
     words:['cat','sun','mouse','file','folder','screen','key','school','friend','book','robot','rocket','planet','star',
            'music','window','printer','network','password','browser','cursor','game','apple','river','cloud','pixel',
            'code','data','button','monitor','text','zebra','quiz','jump','yellow','happy'],
@@ -909,8 +917,8 @@ const trackIdx = id => TRACKS.findIndex(t=>t.id===id);
 
 
 /* ================= Складність: траса → текст, автівка → суперник ================= */
-const TRACK_LEVEL = { city:'home', london:'words', forest:'words', desert:'sentences', arctic:'long' };
-const LEVEL_NAME = { home:'основний ряд', words:'слова', sentences:'фрази', long:'більше фраз', punct:'розділові знаки' };
+const TRACK_LEVEL = { city:'home', london:'top', forest:'words', desert:'sentences', arctic:'long' };
+const LEVEL_NAME = { home:'основний ряд', top:'основний і верхній ряд', words:'слова', sentences:'фрази', long:'більше фраз', punct:'розділові знаки' };
 const stageLevel = ([track, , level]) => level || TRACK_LEVEL[track];
 const CAR_ORDER = ['beetle','taxi','jeep','monster','sport','f1'];
 const CAR_CPM = { beetle:12, taxi:16, jeep:20, monster:25, sport:30, f1:40 };
@@ -924,6 +932,14 @@ const BOT_COLOR = '#6C5CE7';
 const ASSIST = { delay:2.5, lead:0, ratio:0.9, min:0.5, idle:2, idleMs:4000, ease:1.5 };
 // Перемога зі швидкістю від PRO_CPM зн/хв і точністю від 90% відкриває змагання pro
 const PRO_CPM = 45;
+// Налаштування вчителя в адресі (лише для вільних заїздів, змагання не змінюються):
+// ?robot=8 — швидкість робота 8 зн/хв для будь-якої автівки (від 3 до 150);
+// ?bez-robota — тренування без суперника
+const TEACHER = (()=>{
+  const q = new URLSearchParams(location.search);
+  const cpm = Math.round(+q.get('robot'));
+  return { cpm: cpm >= 3 && cpm <= 150 ? cpm : 0, noBot: q.has('bez-robota') };
+})();
 
 /* ================= Нейрончики й розблокування ================= */
 const UNLOCKS = [
@@ -1548,7 +1564,7 @@ function shuffle(a){
 
 function makeText(lang, level){
   const src = TEXTS[lang][level === 'long' ? 'sentences' : level];
-  const n = { home:5, words:4, sentences:2, long:3, punct:2 }[level];
+  const n = { home:5, top:4, words:4, sentences:2, long:3, punct:2 }[level];
   return shuffle(src.slice()).slice(0, n).join(' ');
 }
 
@@ -1574,7 +1590,7 @@ function startRace(opts){
   const level = opts.level || TRACK_LEVEL[opts.track];
   race = {
     text: makeText(opts.lang, level), track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
-    pos:0, errors:0, missed:false, phase:'countdown', startT:0, lastKeyT:0,
+    pos:0, errors:0, missed:false, streak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
     botCpm:opts.cpm, botChars:0, seed:Math.random()*10, lastFrame:0,
     botDone:false, assist:!opts.comp?.pro, assistK:1, botDelay:opts.comp?.pro ? 0 : ASSIST.delay,
     hold:{ focus:false, alert:false }   // пауза: сторінка без фокусу або підказка про мову чи Caps Lock
@@ -1587,10 +1603,11 @@ function startRace(opts){
   buildKeyboard();
   drawCars(opts.model);
   setP(carMe, 0); setP(carBot, 0);
+  carBot.hidden = race.noBot;
   const c = race.comp;
   document.getElementById('raceInfo').textContent = c
     ? `🏆 ${c.name} · етап ${profile.runs[c.id].stage + 1}/${c.stages.length} · 🎯 від ${c.minAcc}%`
-    : '';
+    : race.noBot ? '🧘 Тренування без робота' : TEACHER.cpm ? `🤖 Робот: ${TEACHER.cpm} зн/хв` : '';
   renderText();
   spans[0].classList.add('cur');
   showNextKey(race.text[0]);
@@ -1603,7 +1620,7 @@ function startRace(opts){
   runCountdown();
 }
 function startFree(){
-  startRace({ track:settings.track, lang:settings.lang, cpm:CAR_CPM[settings.model], model:settings.model });
+  startRace({ track:settings.track, lang:settings.lang, cpm:TEACHER.cpm || CAR_CPM[settings.model], model:settings.model, noBot:TEACHER.noBot });
 }
 function startComp(id){
   const c = compById(id);
@@ -1654,7 +1671,7 @@ function loop(now){
     return;
   }
   const total = race.text.length;
-  if(race.botChars < total){
+  if(!race.noBot && race.botChars < total){
     const t = (now - race.startT) / 1000;
     const k = 1 + 0.14*Math.sin(t*0.9 + race.seed) + 0.06*Math.sin(t*2.7 + race.seed*2);   // робот то пришвидшується, то гальмує
     if(race.assist){
@@ -1675,7 +1692,7 @@ function loop(now){
   carBot.classList.toggle('moving', race.botChars < total);
   carMe.classList.toggle('moving', race.phase==='race' && now - race.lastKeyT < 500);
   if(race.phase === 'race') updateStats(now);
-  if(race.phase === 'race' || race.botChars < total) rafId = requestAnimationFrame(loop);
+  if(race.phase === 'race' || (!race.noBot && race.botChars < total)) rafId = requestAnimationFrame(loop);
 }
 
 function fmtTime(sec){ sec = Math.floor(sec); return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`; }
@@ -1730,6 +1747,18 @@ const readCaps = e=>{
 document.addEventListener('keydown', readCaps, true);
 document.addEventListener('keyup', readCaps, true);
 
+// Похвала за кожні STREAK_STEP правильних натискань поспіль
+const STREAK_STEP = 10;
+function praise(n){
+  textBox.querySelector('.praise')?.remove();
+  const p = document.createElement('div');
+  p.className = 'praise';
+  p.textContent = n === STREAK_STEP ? `🔥 ${n} без помилок!` : n === 2 * STREAK_STEP ? `⭐ ${n} поспіль — супер!` : `🚀 ${n} без жодної помилки!`;
+  textBox.appendChild(p);
+  setTimeout(()=>p.remove(), 2300);
+  if(loud) sparkle(); else { tone(660, .1, 'sine', .03); tone(880, .14, 'sine', .03, .09); }
+}
+
 const isCyr = c => /[а-яіїєґ]/i.test(c);
 const isLat = c => /[a-z]/i.test(c);
 
@@ -1750,6 +1779,7 @@ function handleChar(ch){
     race.lastKeyT = performance.now();
     setP(carMe, race.pos / race.text.length);
     if(race.pos === race.text.length) return finish();
+    if(++race.streak % STREAK_STEP === 0) praise(race.streak);
     spans[race.pos].classList.add('cur');
     showNextKey(race.text[race.pos]);
     return;
@@ -1760,6 +1790,7 @@ function handleChar(ch){
   if(ch.toLowerCase() === need && ch !== need) return showAlert(capsOn === false ? 'shift' : 'caps');
   race.errors++;
   race.missed = true;
+  race.streak = 0;
   const s = spans[race.pos];
   s.classList.remove('err'); void s.offsetWidth; s.classList.add('err');
   setTimeout(()=>s.classList.remove('err'), 220);
@@ -1808,15 +1839,16 @@ function finish(){
   carMe.classList.remove('moving');
   showNextKey(undefined);
   const len = race.text.length;
-  const won = !race.botDone;              // доїхав до фінішу раніше за робота
+  const solo = race.noBot;                // тренування без робота: просто фініш
+  const won = !solo && !race.botDone;     // доїхав до фінішу раніше за робота
   const typed = race.pos;
   const sec = (now - race.startT) / 1000;
   const speed = Math.round(typed / sec * 60);
   const acc = typed ? Math.round(typed / (typed + race.errors) * 100) : 0;
-  const stars = won ? 2 + (acc >= 90 ? 1 : 0) : 1;
+  const stars = won || solo ? 2 + (acc >= 90 ? 1 : 0) : 1;
   const key = bestKey(race.lang, race.track);
   const prevBest = profile.bests[key] || 0;
-  const record = won && speed > prevBest;  // рекорд — лише за повний текст
+  const record = (won || solo) && speed > prevBest;  // рекорд — лише за повний текст
   if(record) profile.bests[key] = speed;
   profile.races++;
   if(won) profile.wins++;
@@ -1881,9 +1913,9 @@ function finish(){
 
   // Значок і заголовок: медалі 🥇🥈🥉 лишаємо лише для змагань, тут — без них
   const failed = c && !(won && acc >= c.minAcc);
-  document.getElementById('wBig').textContent = !won ? '🤖' : failed ? '🎯' : '🏆';
-  document.getElementById('winTitle').textContent = !won ? 'Робот приїхав першим' : failed ? 'Етап не зараховано' : 'Перемога!';
-  document.getElementById('wSub').textContent = won ? '' : 'Але й ти на фініші — так тримати!';
+  document.getElementById('wBig').textContent = solo ? '🏁' : !won ? '🤖' : failed ? '🎯' : '🏆';
+  document.getElementById('winTitle').textContent = solo ? 'Фініш!' : !won ? 'Робот приїхав першим' : failed ? 'Етап не зараховано' : 'Перемога!';
+  document.getElementById('wSub').textContent = won || solo ? '' : 'Але й ти на фініші — так тримати!';
   document.getElementById('wStars').innerHTML = [1,2,3].map(i=>`<span class="${i<=stars?'':'dim'}">⭐</span>`).join('');
   document.getElementById('wSpeed').textContent = speed;
   document.getElementById('wAcc').textContent = acc + '%';
@@ -1911,7 +1943,7 @@ function finish(){
   bindLinkButtons(document.getElementById('wComp'));
 
   setTimeout(()=>{
-    if(won && !failed){ if(loud) celebrate(bigWin); else { fanfare(); confetti(); } }
+    if((won || solo) && !failed){ if(loud) celebrate(bigWin); else { fanfare(); confetti(); } }
     else if(loud) sadTrombone(); else tone(330, .3, 'triangle', .07);
     if(loud && (opened.length || proNow)) sparkle(1.6);
     overlay.classList.add('show');
