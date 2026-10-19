@@ -618,6 +618,9 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
+// ?boost — нормативи середньої школи (5–7 класи) з оригінальної гри: швидкості роботів, точність, медалі,
+// повні речення, без фори й пригальмовування робота, усі змагання відкриті. Прогрес — окремий
+const BOOST = new URLSearchParams(location.search).has('boost');
 /* ================= Тексти ================= */
 // Слова лише з літер основного ряду (ФІВА ПР ОЛДЖЄ / ASDF G H JKL)
 const TEXTS = {
@@ -634,7 +637,14 @@ const TEXTS = {
            'шкільний дзвоник','руда лисичка','біла хмаринка','смачний обід','кольорові олівці','швидкий робот',
            'мишка і клавіатура','великий монітор','тиха вода','добрий ранок','весела пісня','золота осінь',
            'наш дружний клас','чарівна казка','літні канікули','жовтий соняшник','сміливий їжачок','пухнастий кіт',
-           'цікава книжка','щасливий день']
+           'цікава книжка','щасливий день'],
+    // Повні речення оригінальної гри — для режиму ?boost
+    full:['Клавіатура допомагає швидко вводити текст.','Миша та клавіатура є пристроями введення.',
+           'Друкуй усіма десятьма пальцями.','Дивись на екран і не підглядай на клавіші.','Надійний пароль довгий і складний.',
+           'Тиха вода греблю рве.','Повторення мати навчання.','Наш робот вчиться друкувати без помилок.',
+           'Принтер друкує текст на папері.','Файли зберігаються в папках.','Не відкривай листи від незнайомців.',
+           'Монітор показує зображення.','Без праці не виловиш і рибки зі ставка.','Терпіння і праця все перетруть.',
+           'Інформатика вчить думати логічно.','Зберігай роботу кожні кілька хвилин.']
   },
   en:{
     home:['dad','sad','lad','add','ask','glass','flask','salad','hall','fall','all','gas','flag','half','shall','dash',
@@ -646,6 +656,10 @@ const TEXTS = {
     sentences:['a red apple','my new book','big blue sky','a happy cat','green trees','the fast robot',
            'a little mouse','hot tea','my best friend','a yellow sun','the school bus','a funny dog',
            'cold ice cream','a good game','the white cloud','my green pen'],
+    full:['Practice makes perfect.','My robot can type very fast.','The mouse and the keyboard are input devices.',
+           'Save your work every few minutes.','A strong password is long and secret.','The printer puts text on paper.',
+           'Every file lives in a folder.','Slow and steady wins the race.','Look at the screen and not at the keys.',
+           'Computers help us learn new things.','Keep your fingers on the home row.'],
     // Речення з розділовими знаками . , - ( ) " ! ? @ ' : — для змагання «Слалом знаків»
     punct:['Hi, Anna! Can you send me the file?','My e-mail is robot@school.ua: write to me!',
            "Don't forget: save your work (every few minutes)!",'"Ready?" asked the robot. "Go!"',
@@ -944,11 +958,12 @@ const trackIdx = id => TRACKS.findIndex(t=>t.id===id);
 
 
 /* ================= Складність: траса → текст, автівка → суперник ================= */
-const TRACK_LEVEL = { city:'home', london:'top', forest:'words', desert:'sentences', arctic:'long' };
-const LEVEL_NAME = { home:'основний ряд', top:'основний і верхній ряд', words:'слова', sentences:'фрази', long:'більше фраз', punct:'розділові знаки' };
+const TRACK_LEVEL = { city:'home', london:BOOST ? 'words' : 'top', forest:'words', desert:'sentences', arctic:'long' };
+const LEVEL_NAME = { home:'основний ряд', top:'основний і верхній ряд', words:'слова', sentences:BOOST ? 'речення' : 'фрази', long:BOOST ? 'довгі речення' : 'більше фраз', punct:'розділові знаки' };
 const stageLevel = ([track, , level]) => level || TRACK_LEVEL[track];
 const CAR_ORDER = ['beetle','taxi','jeep','monster','sport','f1'];
-const CAR_CPM = { beetle:12, taxi:16, jeep:20, monster:25, sport:30, f1:40 };
+const CAR_CPM = BOOST ? { beetle:35, taxi:50, jeep:65, monster:80, sport:100, f1:125 }
+                      : { beetle:12, taxi:16, jeep:20, monster:25, sport:30, f1:40 };
 const BOT_COLOR = '#6C5CE7';
 // Підтримка для початківців (не діє у змаганнях pro):
 // delay — робот рушає на стільки секунд пізніше;
@@ -988,8 +1003,9 @@ const isOpen = (kind, id, n = profile.neurons) => n >= unlockAt(kind, id);
 // Нейрончики за заїзд: складність траси + швидкість, помножені на точність, + бонус за перемогу
 function neuronsFor(r){
   const base = TRACKS[trackIdx(r.track)].base;
-  const speedPts = Math.round(r.speed / 5);
-  const mult = r.errors === 0 ? 1.5 : r.acc >= 90 ? 1.2 : r.acc >= 80 ? 1 : r.acc >= 70 ? 0.6 : 0.3;
+  const speedPts = Math.round(r.speed / (BOOST ? 15 : 5));
+  const [a1, a2, a3] = BOOST ? [95, 90, 80] : [90, 80, 70];
+  const mult = r.errors === 0 ? 1.5 : r.acc >= a1 ? 1.2 : r.acc >= a2 ? 1 : r.acc >= a3 ? 0.6 : 0.3;
   const win = r.won ? base : 0;
   return { base, speedPts, mult, win, total: Math.round((base + speedPts) * mult) + win };
 }
@@ -1068,6 +1084,12 @@ const COMPS = [
     desc:'Англійські речення, повні розділових знаків: . , - ( ) " ! ? @ \' : — підійде будь-яка автівка.',
     stages:[['city','en','punct'],['city','en','punct'],['forest','en','punct'],['forest','en','punct'],['desert','en','punct'],['arctic','en','punct']] }
 ];
+// ?boost: швидкість робота й мінімальна точність змагань — як в оригінальній грі
+if(BOOST){
+  const ORIG = { kyiv:[35,85], carpathian:[45,88], london:[45,88], nyc:[60,90], dakar:[70,90], monster:[80,92],
+                 arctic:[85,92], lemans:[100,93], f1:[125,95], punct:[40,85] };
+  COMPS.forEach(c=>{ [c.cpm, c.minAcc] = ORIG[c.id]; });
+}
 const MEDALS = { gold:['🥇','Золото'], silver:['🥈','Срібло'], bronze:['🥉','Бронза'] };
 const MEDAL_RANK = { bronze:1, silver:2, gold:3 };
 const MEDAL_BONUS = { gold:40, silver:25, bronze:15 };
@@ -1075,10 +1097,10 @@ const MEDAL_BONUS = { gold:40, silver:25, bronze:15 };
 // від 90% — золото, від 80% — срібло, інакше — бронза
 function medalOf(results){
   const acc = avg(results, 2);
-  return acc >= 90 ? 'gold' : acc >= 80 ? 'silver' : 'bronze';
+  return BOOST ? (acc >= 97 ? 'gold' : acc >= 93 ? 'silver' : 'bronze') : (acc >= 90 ? 'gold' : acc >= 80 ? 'silver' : 'bronze');
 }
 const compById = id => COMPS.find(c=>c.id===id);
-const compVisible = (c, p = profile) => !c.pro || p.pro;
+const compVisible = (c, p = profile) => BOOST || !c.pro || p.pro;
 // Складність: за місцем у списку або власна (lvl) — для змагань, доданих у кінець, щоб не зсувати номери в посиланнях #z=N
 const diffDots = (c, i) => { const d = c.lvl || i + 1; return '●'.repeat(d) + `<i>${'●'.repeat(COMPS.length - d)}</i>`; };
 const avg = (arr, i) => Math.round(arr.reduce((s, x)=>s + x[i], 0) / arr.length);
@@ -1093,7 +1115,7 @@ const today = () => { const d = new Date(); return Math.floor((d - d.getTimezone
 const fmtDay = day => new Date(day * 86400000).toLocaleDateString('uk-UA', { timeZone:'UTC' });
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-const STORE_KEY = 'typing-race-kids-v1';
+const STORE_KEY = BOOST ? 'typing-race-kids-boost-v1' : 'typing-race-kids-v1';
 const DEFAULT_SETTINGS = { lang:'uk', model:'beetle', track:'city', badge:'' };
 // comps: найкращий результат кожного змагання; run — змагання в процесі
 const newProfile = () => ({ neurons:0, bests:{}, races:0, wins:0, comps:{}, runs:{}, joined:null, since:today(), settings:{ ...DEFAULT_SETTINGS, colors:{} } });
@@ -1604,8 +1626,8 @@ function shuffle(a){
 
 
 function makeText(lang, level){
-  const src = TEXTS[lang][level === 'long' ? 'sentences' : level];
-  const n = { home:5, top:4, words:4, sentences:2, long:3, punct:2 }[level];
+  const src = TEXTS[lang][level === 'long' || level === 'sentences' ? (BOOST ? 'full' : 'sentences') : level];
+  const n = (BOOST ? { home:8, top:7, words:7, sentences:2, long:3, punct:3 } : { home:5, top:4, words:4, sentences:2, long:3, punct:2 })[level];
   return shuffle(src.slice()).slice(0, n).join(' ');
 }
 
@@ -1633,7 +1655,7 @@ function startRace(opts){
     text: makeText(opts.lang, level), track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
     pos:0, errors:0, missed:false, streak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
     botCpm:opts.cpm, botChars:0, seed:Math.random()*10, lastFrame:0,
-    botDone:false, assist:!opts.comp?.pro, assistK:1, botDelay:opts.comp?.pro ? 0 : ASSIST.delay,
+    botDone:false, assist:!BOOST && !opts.comp?.pro, assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
     hold:{ focus:false, alert:false }   // пауза: сторінка без фокусу або підказка про мову чи Caps Lock
   };
   setupEl.hidden = true;
@@ -1650,8 +1672,9 @@ function startRace(opts){
   document.getElementById('raceInfo').textContent = c
     ? `🏆 ${c.name} · етап ${profile.runs[c.id].stage + 1}/${c.stages.length} · 🎯 від ${c.minAcc}%`
     : '';
-  document.getElementById('teacherNote').textContent = c ? ''
-    : race.noBot ? 'Налаштування вчителя: тренування без робота' : TEACHER.cpm ? `Налаштування вчителя: робот ${TEACHER.cpm} зн/хв` : '';
+  const notes = [BOOST && 'нормативи 5–7 класів'];
+  if(!c) notes.push(race.noBot ? 'тренування без робота' : TEACHER.cpm && `робот ${TEACHER.cpm} зн/хв`);
+  document.getElementById('teacherNote').textContent = notes.some(Boolean) ? 'Налаштування вчителя: ' + notes.filter(Boolean).join(' · ') : '';
   renderText();
   spans[0].classList.add('cur');
   showNextKey(race.text[0]);
@@ -1804,6 +1827,9 @@ function praise(n){
   if(loud) sparkle(); else { tone(660, .1, 'sine', .03); tone(880, .14, 'sine', .03, .09); }
 }
 
+// ?boost — гра для старших: без позначки Junior
+if(BOOST){ document.querySelector('.game-title').textContent = 'Клавіатурні перегони'; document.title = 'Клавіатурні перегони · Лабораторія'; }
+
 const isCyr = c => /[а-яіїєґ]/i.test(c);
 const isLat = c => /[a-z]/i.test(c);
 
@@ -1890,14 +1916,14 @@ function finish(){
   const sec = (now - race.startT) / 1000;
   const speed = Math.round(typed / sec * 60);
   const acc = typed ? Math.round(typed / (typed + race.errors) * 100) : 0;
-  const stars = won || solo ? 2 + (acc >= 90 ? 1 : 0) : 1;
+  const stars = won || solo ? 2 + (acc >= (BOOST ? 95 : 90) ? 1 : 0) : 1;
   const key = bestKey(race.lang, race.track);
   const prevBest = profile.bests[key] || 0;
   const record = (won || solo) && speed > prevBest;  // рекорд — лише за повний текст
   if(record) profile.bests[key] = speed;
   profile.races++;
   if(won) profile.wins++;
-  const proNow = !profile.pro && won && speed >= PRO_CPM && acc >= 90;   // результат, незвичний для 2–3 класу
+  const proNow = !BOOST && !profile.pro && won && speed >= PRO_CPM && acc >= 90;   // результат, незвичний для 2–3 класу
   if(proNow) profile.pro = true;
 
   // Нейрончики
