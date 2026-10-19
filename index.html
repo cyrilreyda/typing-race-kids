@@ -299,6 +299,16 @@
   .ach-head .prof-avatar{margin:0; flex-shrink:0;}
   .ach-head h2{font-size:28px; line-height:1.15;}
   .ach-head .prof-stats{justify-content:flex-start; margin:6px 0 2px;}
+  /* Графік швидкості в профілі */
+  .speed-chart{position:relative;}
+  .speed-chart svg{display:block; width:100%; height:auto; font-family:'Nunito Sans',sans-serif; font-size:11px; fill:var(--ink-soft);}
+  .speed-chart .val{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px; fill:var(--ink);}
+  .chart-tip{position:absolute; transform:translate(var(--tx, -50%), calc(-100% - 12px)); background:var(--surface); border:1.5px solid var(--line); border-radius:var(--radius-s);
+    padding:4px 10px; font-size:12.5px; line-height:1.4; color:var(--ink); white-space:nowrap; pointer-events:none; box-shadow:0 6px 16px rgba(27,27,58,.15);}
+  /* Слабкі клавіші на екрані результату */
+  .weak{display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:6px 8px; margin:2px 0 10px; font-size:14px; color:var(--ink-soft);}
+  .weak .kbd{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px; color:var(--ink); background:var(--surface); border:1.5px solid var(--line); border-bottom-width:3px; border-radius:7px; padding:0 9px; min-width:28px; text-align:center;}
+  .weak small{margin-left:-4px;}
   .medals{display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:10px;}
   .medal-item{position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; border:1.5px solid var(--line); border-radius:var(--radius-m); padding:10px 6px 8px;}
   .medal-item.got{background:#FFFBEF; border-color:#F5D98A;}
@@ -570,6 +580,7 @@
     <div id="wGain"></div>
     <div id="wComp"></div>
     <div id="wRecord"></div>
+    <div id="wWeak"></div>
     <div id="wUnlock"></div>
     <div class="win-actions">
       <button class="btn btn-primary" id="againBtn">🏁 Ще заїзд</button>
@@ -601,6 +612,8 @@
     <div class="prof-avatar" id="profAvatar"></div>
     <h2 id="profTitle"></h2>
     <div class="prof-stats" id="profStats"></div>
+    <h3>Швидкість по днях, знаків/хв</h3>
+    <div class="speed-chart" id="profChart"></div>
     <h3>Гравці на цьому пристрої</h3>
     <div class="players" id="playerList"></div>
     <form class="field" id="addForm">
@@ -638,6 +651,10 @@ const TEXTS = {
            'мишка і клавіатура','великий монітор','тиха вода','добрий ранок','весела пісня','золота осінь',
            'наш дружний клас','чарівна казка','літні канікули','жовтий соняшник','сміливий їжачок','пухнастий кіт',
            'цікава книжка','щасливий день'],
+    // Українські речення з розділовими знаками й апострофом — змагання «Знаки українською»
+    ukpunct:["Привіт, Олено! Ти вже зробила домашнє завдання?","М'яч, п'ять, об'єкт - слова з апострофом.","Сьогодні вівторок; завтра - середа.","Що краще: миша чи сенсорна панель?","Комп'ютер, принтер, сканер - пристрої.","Ой, я забув пароль! Що робити?","Олег запитав: \"Де моя флешка?\"","Пам'ятай: пароль - це твій секрет.","Сім'я, здоров'я, подвір'я - пишемо з апострофом.","Файл (документ) збережено; можна закривати.","Тиша! Йде урок інформатики.","Чи знаєш ти, як скопіювати текст?","Будь ласка, вимкни звук: йде контрольна.","Ура! Ми перемогли в олімпіаді!","Дмитро сказав: \"Я вже вивчив сліпий друк\".","Хто знайде помилку, той отримає бонус."],
+    // Речення з числами, датами й часом — змагання «Цифри й код»
+    digits:["У нашому класі 27 учнів.","Урок починається о 8:30.","Мій день народження 15.03.2014.","У тижні 7 днів, а в році 12 місяців.","Кабінет інформатики - номер 105.","На парті лежать 3 олівці і 2 ручки.","Флешка має 64 гігабайти пам'яті.","Перерва триває 15 хвилин.","Київ заснували понад 1500 років тому.","Сьогодні 19 жовтня 2026 року.","У шкільній бібліотеці 4800 книжок.","Номер телефону: 044-123-45-67.","Квартира 12, поверх 4, під'їзд 2.","Мій пароль має 10 символів.","Олімпіада буде 25.11 о 10:00."],
     // Повні речення оригінальної гри — для режиму ?boost
     full:['Клавіатура допомагає швидко вводити текст.','Миша та клавіатура є пристроями введення.',
            'Друкуй усіма десятьма пальцями.','Дивись на екран і не підглядай на клавіші.','Надійний пароль довгий і складний.',
@@ -660,6 +677,8 @@ const TEXTS = {
            'Save your work every few minutes.','A strong password is long and secret.','The printer puts text on paper.',
            'Every file lives in a folder.','Slow and steady wins the race.','Look at the screen and not at the keys.',
            'Computers help us learn new things.','Keep your fingers on the home row.'],
+    // Рядки коду — змагання «Цифри й код»
+    code:["x = 5 + 3","print('Hello, world!')","name = input('Name: ')","for i in range(10):","if score > 90:","a = [1, 2, 3]","total = price * 2","user = {'age': 12}","while x < 100:","print(len(text))","def hello():","y = (x + 1) * 2","email = 'kid@school.ua'","colors = ['red', 'blue']","# my first program","z = x // 2 - 1"],
     // Речення з розділовими знаками . , - ( ) " ! ? @ ' : — для змагання «Слалом знаків»
     punct:['Hi, Anna! Can you send me the file?','My e-mail is robot@school.ua: write to me!',
            "Don't forget: save your work (every few minutes)!",'"Ready?" asked the robot. "Go!"',
@@ -690,8 +709,10 @@ const LAYOUTS = {
 };
 const BUMPS = { uk:['а','о'], en:['f','j'] };
 // Ряд цифр — лише коли в тексті є його символи (! @ ( ) - тощо); пальці — для кожної клавіші окремо
-const NUM_ROW = { en:[['1','!'],['2','@'],['3','#'],['4','$'],['5','%'],['6','^'],['7','&'],['8','*'],['9','('],['0',')'],['-','_']] };
-const NUM_FINGER = [0,1,2,3,3,3,4,5,6,7,7];
+const NUM_ROW = { en:[['1','!'],['2','@'],['3','#'],['4','$'],['5','%'],['6','^'],['7','&'],['8','*'],['9','('],['0',')'],['-','_'],['=','+']],
+                  // українська розкладка Windows: апостроф ліворуч від 1, знаки над цифрами інші, ніж в англійській
+                  uk:[["'",'₴'],['1','!'],['2','"'],['3','№'],['4',';'],['5','%'],['6',':'],['7','?'],['8','*'],['9','('],['0',')'],['-','_']] };
+const NUM_FINGER = { en:[0,1,2,3,3,3,4,5,6,7,7,7], uk:[0,0,1,2,3,3,3,4,5,6,7,7] };
 // Колонка → палець: 0–3 ліва рука (мізинець…вказівний), 4–7 права (вказівний…мізинець)
 const COL_FINGER = [0,1,2,3,3,4,4,5,6,7,7,7];
 const FINGERS = ['лівий мізинець','лівий безіменний','лівий середній','лівий вказівний',
@@ -959,7 +980,7 @@ const trackIdx = id => TRACKS.findIndex(t=>t.id===id);
 
 /* ================= Складність: траса → текст, автівка → суперник ================= */
 const TRACK_LEVEL = { city:'home', london:BOOST ? 'words' : 'top', forest:'words', desert:'sentences', arctic:'long' };
-const LEVEL_NAME = { home:'основний ряд', top:'основний і верхній ряд', words:'слова', sentences:BOOST ? 'речення' : 'фрази', long:BOOST ? 'довгі речення' : 'більше фраз', punct:'розділові знаки' };
+const LEVEL_NAME = { home:'основний ряд', top:'основний і верхній ряд', words:'слова', sentences:BOOST ? 'речення' : 'фрази', long:BOOST ? 'довгі речення' : 'більше фраз', punct:'розділові знаки', ukpunct:'розділові знаки', digits:'цифри', code:'код', drill:'слабкі клавіші' };
 const stageLevel = ([track, , level]) => level || TRACK_LEVEL[track];
 const CAR_ORDER = ['beetle','taxi','jeep','monster','sport','f1'];
 const CAR_CPM = BOOST ? { beetle:35, taxi:50, jeep:65, monster:80, sport:100, f1:125 }
@@ -1047,6 +1068,10 @@ const BADGES = {
 };
 BADGES.bubble = `<path d="M5 9 Q5 4 10 4 H30 Q35 4 35 9 V24 Q35 29 30 29 H17 L9 36 L10.5 29 H10 Q5 29 5 24 Z" fill="#FF5D9E" ${OUT}/>
     <text x="20" y="23.5" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="16" fill="#fff">?!</text>`;
+BADGES.quotes = `<path d="M5 9 Q5 4 10 4 H30 Q35 4 35 9 V24 Q35 29 30 29 H17 L9 36 L10.5 29 H10 Q5 29 5 24 Z" fill="#16A3A0" ${OUT}/>
+    <text x="20" y="23" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="15" fill="#fff">,:'</text>`;
+BADGES.code = `<rect x="3" y="6" width="34" height="28" rx="6" fill="#1B1B3A" ${OUT}/>
+    <text x="20" y="25" text-anchor="middle" font-family="Consolas, monospace" font-weight="900" font-size="13" fill="#FFC93C">&lt;/&gt;</text>`;
 const badgeHTML = (id, title='') => BADGES[id] ? `<span class="badge-ico"${title ? ` title="${esc(title)}"` : ''}><svg viewBox="-2 -2 44 44" aria-hidden="true">${BADGES[id]}</svg></span>` : '';
 
 /* ================= Змагання ================= */
@@ -1082,12 +1107,18 @@ const COMPS = [
     stages:[['desert','uk'],['arctic','uk'],['arctic','en']] },
   { id:'punct', name:'Слалом знаків', badge:'bubble', cpm:30, minAcc:80, cars:null, lvl:4, pro:true,
     desc:'Англійські речення, повні розділових знаків: . , - ( ) " ! ? @ \' : — підійде будь-яка автівка.',
-    stages:[['city','en','punct'],['city','en','punct'],['forest','en','punct'],['forest','en','punct'],['desert','en','punct'],['arctic','en','punct']] }
+    stages:[['city','en','punct'],['city','en','punct'],['forest','en','punct'],['forest','en','punct'],['desert','en','punct'],['arctic','en','punct']] },
+  { id:'ukpunct', name:'Знаки українською', badge:'quotes', cpm:30, minAcc:80, cars:null, lvl:5, pro:true,
+    desc:'Українські речення з комами, двокрапками, лапками й апострофом. На українській розкладці знаки стоять не там, де на англійській.',
+    stages:[['city','uk','ukpunct'],['city','uk','ukpunct'],['forest','uk','ukpunct'],['desert','uk','ukpunct']] },
+  { id:'code', name:'Цифри й код', badge:'code', cpm:25, minAcc:80, cars:null, lvl:6, pro:true,
+    desc:'Числа, дати, час і перші рядки програм: тренуємо цифровий ряд, дужки й знаки.',
+    stages:[['city','uk','digits'],['forest','uk','digits'],['city','en','code'],['desert','en','code'],['arctic','en','code']] }
 ];
 // ?boost: швидкість робота й мінімальна точність змагань — як в оригінальній грі
 if(BOOST){
   const ORIG = { kyiv:[35,85], carpathian:[45,88], london:[45,88], nyc:[60,90], dakar:[70,90], monster:[80,92],
-                 arctic:[85,92], lemans:[100,93], f1:[125,95], punct:[40,85] };
+                 arctic:[85,92], lemans:[100,93], f1:[125,95], punct:[40,85], ukpunct:[40,85], code:[40,85] };
   COMPS.forEach(c=>{ [c.cpm, c.minAcc] = ORIG[c.id]; });
 }
 const MEDALS = { gold:['🥇','Золото'], silver:['🥈','Срібло'], bronze:['🥉','Бронза'] };
@@ -1100,7 +1131,9 @@ function medalOf(results){
   return BOOST ? (acc >= 97 ? 'gold' : acc >= 93 ? 'silver' : 'bronze') : (acc >= 90 ? 'gold' : acc >= 80 ? 'silver' : 'bronze');
 }
 const compById = id => COMPS.find(c=>c.id===id);
-const compVisible = (c, p = profile) => BOOST || !c.pro || p.pro;
+// ?mode=123 — відкрити змагання для сильних учнів одразу, без нормативу
+const UNLOCK_ALL = new URLSearchParams(location.search).get('mode') === '123';
+const compVisible = (c, p = profile) => BOOST || UNLOCK_ALL || !c.pro || p.pro;
 // Складність: за місцем у списку або власна (lvl) — для змагань, доданих у кінець, щоб не зсувати номери в посиланнях #z=N
 const diffDots = (c, i) => { const d = c.lvl || i + 1; return '●'.repeat(d) + `<i>${'●'.repeat(COMPS.length - d)}</i>`; };
 const avg = (arr, i) => Math.round(arr.reduce((s, x)=>s + x[i], 0) / arr.length);
@@ -1548,9 +1581,10 @@ function buildKeyboard(){
     const rowEl = document.createElement('div');
     rowEl.className = 'kb-row rn';
     nums.forEach(([lo, up], col)=>{
-      const el = mkKey(lo, up, NUM_FINGER[col], '');
-      keyMap[lo] = { el, finger:NUM_FINGER[col], shift:false };
-      keyMap[up] = { el, finger:NUM_FINGER[col], shift:true };
+      const finger = NUM_FINGER[race.lang][col];
+      const el = mkKey(lo, up, finger, '');
+      keyMap[lo] = { el, finger, shift:false };
+      keyMap[up] = { el, finger, shift:true };
       rowEl.appendChild(el);
     });
     kbEl.appendChild(rowEl);
@@ -1627,7 +1661,8 @@ function shuffle(a){
 
 function makeText(lang, level){
   const src = TEXTS[lang][level === 'long' || level === 'sentences' ? (BOOST ? 'full' : 'sentences') : level];
-  const n = (BOOST ? { home:8, top:7, words:7, sentences:2, long:3, punct:3 } : { home:5, top:4, words:4, sentences:2, long:3, punct:2 })[level];
+  const n = (BOOST ? { home:8, top:7, words:7, sentences:2, long:3, punct:3, ukpunct:3, digits:3, code:3 }
+                   : { home:5, top:4, words:4, sentences:2, long:3, punct:2, ukpunct:2, digits:2, code:2 })[level];
   return shuffle(src.slice()).slice(0, n).join(' ');
 }
 
@@ -1652,7 +1687,7 @@ function startRace(opts){
   cancelAnimationFrame(rafId);
   const level = opts.level || TRACK_LEVEL[opts.track];
   race = {
-    text: makeText(opts.lang, level), track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
+    text: opts.text || makeText(opts.lang, level), weak:{}, drill:opts.drill || null, track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
     pos:0, errors:0, missed:false, streak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
     botCpm:opts.cpm, botChars:0, seed:Math.random()*10, lastFrame:0,
     botDone:false, assist:!BOOST && !opts.comp?.pro, assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
@@ -1671,9 +1706,9 @@ function startRace(opts){
   const c = race.comp;
   document.getElementById('raceInfo').textContent = c
     ? `🏆 ${c.name} · етап ${profile.runs[c.id].stage + 1}/${c.stages.length} · 🎯 від ${c.minAcc}%`
-    : '';
+    : race.drill ? `🎯 Тренування клавіш: ${race.drill.map(keyName).join(', ')}` : '';
   const notes = [BOOST && 'нормативи 5–7 класів'];
-  if(!c) notes.push(race.noBot ? 'тренування без робота' : TEACHER.cpm && `робот ${TEACHER.cpm} зн/хв`);
+  if(!c && !race.drill) notes.push(TEACHER.noBot ? 'тренування без робота' : TEACHER.cpm && `робот ${TEACHER.cpm} зн/хв`);
   document.getElementById('teacherNote').textContent = notes.some(Boolean) ? 'Налаштування вчителя: ' + notes.filter(Boolean).join(' · ') : '';
   renderText();
   spans[0].classList.add('cur');
@@ -1685,6 +1720,21 @@ function startRace(opts){
   typer.focus();   // фокус одразу в обробнику кліку — щоб на планшеті з'явилась клавіатура
   window.scrollTo({ top:0, behavior:'smooth' });
   runCountdown();
+}
+// Тренування слабких клавіш: слова з усіх текстів цієї мови, де є ці символи; без робота
+const keyName = k => k === ' ' ? 'пробіл' : k;
+function drillText(lang, keys){
+  // Літери тренуємо на звичайних словах (у Junior — без великих літер і знаків); знаки й цифри — на текстах, де вони є
+  const plain = ['home', 'top', 'words', 'sentences', ...(BOOST ? ['full'] : [])];
+  const onlyLetters = keys.every(k=>/\p{L}/u.test(k));
+  const lists = Object.entries(TEXTS[lang]).filter(([k])=>onlyLetters ? plain.includes(k) : BOOST || k !== 'full').flatMap(([, list])=>list);
+  const pool = [...new Set(lists.flatMap(t=>t.split(' ')))].filter(w=>w && keys.some(k=>w.includes(k)));
+  const words = shuffle(pool).slice(0, BOOST ? 7 : 5);
+  if(words.length < 3) keys.forEach(k=>words.push(k.repeat(3)));   // таких слів мало — просто серії символу
+  return shuffle(words).join(' ');
+}
+function startDrill(lang, keys){
+  startRace({ track:settings.track, lang, cpm:CAR_CPM[settings.model], model:settings.model, noBot:true, level:'drill', drill:keys, text:drillText(lang, keys) });
 }
 function startFree(){
   startRace({ track:settings.track, lang:settings.lang, cpm:TEACHER.cpm || CAR_CPM[settings.model], model:settings.model, noBot:TEACHER.noBot });
@@ -1860,6 +1910,7 @@ function handleChar(ch){
   if(race.lang === 'en' && !isCyr(need) && isCyr(ch)) return showAlert('lang');
   if(ch.toLowerCase() === need && ch !== need) return showAlert(capsOn === false ? 'shift' : 'caps');
   race.errors++;
+  race.weak[need] = (race.weak[need] || 0) + 1;   // клавіші з помилками — для екрана результату
   race.missed = true;
   race.streak = 0;
   const s = spans[race.pos];
@@ -1922,6 +1973,10 @@ function finish(){
   const record = (won || solo) && speed > prevBest;  // рекорд — лише за повний текст
   if(record) profile.bests[key] = speed;
   profile.races++;
+  if(!race.drill){   // швидкість по днях — для графіка в профілі: [сума швидкостей, заїздів, найкраща]
+    const h = (profile.hist ||= {})[today()] ||= [0, 0, 0];
+    h[0] += speed; h[1]++; h[2] = Math.max(h[2], speed);
+  }
   if(won) profile.wins++;
   const proNow = !BOOST && !profile.pro && won && speed >= PRO_CPM && acc >= 90;   // результат, незвичний для 2–3 класу
   if(proNow) profile.pro = true;
@@ -1995,6 +2050,12 @@ function finish(){
   document.getElementById('wComp').innerHTML = compHTML;
   document.getElementById('wRecord').innerHTML = record
     ? `<span class="record">🎉 Новий рекорд!</span>` : '';
+  // Клавіші, на яких було найбільше помилок, і кнопка тренування з ними
+  const weak = Object.entries(race.weak).filter(([k])=>k !== ' ').sort((a, b)=>b[1] - a[1]).slice(0, 3);
+  const weakEl = document.getElementById('wWeak');
+  weakEl.innerHTML = weak.length ? `<div class="weak">Помилки на клавішах: ${weak.map(([k, n])=>`<span class="kbd">${esc(keyName(k))}</span>${n > 1 ? `<small>×${n}</small>` : ''}`).join(' ')}
+      <button type="button" class="btn btn-ghost btn-small" id="drillBtn">🎯 Потренувати</button></div>` : '';
+  if(weak.length){ const lang = race.lang, keys = weak.map(([k])=>k); document.getElementById('drillBtn').addEventListener('click', ()=>startDrill(lang, keys)); }
   document.getElementById('wUnlock').innerHTML =
     (opened.length ? `<div class="unlock"><b>🔓 Відкрито за нейрончики!</b><div class="unlock-list">${opened.map(u=>u.kind==='car'
         ? `<div class="unlock-item"><div class="thumb">${carSVG(u.id, carColor(u.id), 'me')}</div><span>Автівка <b>${CARS[u.id].name}</b></span></div>`
@@ -2109,6 +2170,37 @@ function renderPlayerBtn(){
   document.getElementById('playerName').textContent = player || 'Гравець';
 }
 
+// Графік середньої швидкості за день (останні 14 днів із заїздами); підказка з деталями — при наведенні на точку
+function renderSpeedChart(el, hist){
+  const days = Object.keys(hist).map(Number).sort((a, b)=>a - b).slice(-14);
+  if(days.length < 2){ el.innerHTML = `<p class="note-small">Графік з'явиться, коли будуть заїзди у два різні дні.</p>`; return; }
+  const pts = days.map(d=>({ d, avg:Math.round(hist[d][0] / hist[d][1]), n:hist[d][1], best:hist[d][2] }));
+  const W = 440, H = 150, L = 34, R = 34, T = 14, B = 24;
+  const top = Math.max(10, Math.ceil(Math.max(...pts.map(p=>p.avg)) * 1.15 / 10) * 10);
+  const x = i => L + i * (W - L - R) / (pts.length - 1), y = v => T + (H - T - B) * (1 - v / top);
+  const day = d => fmtDay(d).slice(0, 5);
+  const grid = [0, top / 2, top].map(v=>`<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#E4E1F5"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${Math.round(v)}</text>`).join('');
+  const labels = [0, pts.length - 1].map(i=>`<text x="${x(i)}" y="${H - 6}" text-anchor="${i ? 'end' : 'start'}">${day(pts[i].d)}</text>`).join('');
+  const line = `<polyline points="${pts.map((p, i)=>`${x(i)},${y(p.avg)}`).join(' ')}" fill="none" stroke="#16A3A0" stroke-width="2" stroke-linejoin="round"/>`;
+  const dots = pts.map((p, i)=>`<circle cx="${x(i)}" cy="${y(p.avg)}" r="4" fill="#16A3A0" stroke="#fff" stroke-width="2"/>`).join('');
+  const last = pts[pts.length - 1];
+  const lastLabel = `<text x="${x(pts.length - 1) + 8}" y="${y(last.avg) + 4}" class="val">${last.avg}</text>`;
+  const hits = pts.map((p, i)=>`<circle cx="${x(i)}" cy="${y(p.avg)}" r="12" fill="transparent" data-i="${i}"/>`).join('');
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Середня швидкість по днях">${grid}${labels}${line}${dots}${lastLabel}${hits}</svg><div class="chart-tip" hidden></div>`;
+  const tip = el.querySelector('.chart-tip');
+  el.querySelectorAll('[data-i]').forEach(c=>{
+    c.addEventListener('mouseenter', ()=>{
+      const p = pts[+c.dataset.i];
+      tip.innerHTML = `<b>${day(p.d)}</b> · середня ${p.avg} зн/хв<br>найкраща ${p.best} · заїздів ${p.n}`;
+      tip.hidden = false;
+      const f = +c.getAttribute('cx') / W;
+      tip.style.left = f * 100 + '%';
+      tip.style.setProperty('--tx', f > .7 ? '-92%' : f < .3 ? '-8%' : '-50%');   // біля країв — щоб підказка не виходила за вікно
+      tip.style.top = (+c.getAttribute('cy') / H * 100) + '%';
+    });
+    c.addEventListener('mouseleave', ()=>tip.hidden = true);
+  });
+}
 function renderProfile(){
   document.getElementById('profShare').innerHTML =
     `<button type="button" class="share-ico" data-url="${esc(makeShareLink())}" title="Поділитися результатами">${LINK_ICON}</button>`;
@@ -2118,6 +2210,7 @@ function renderProfile(){
   document.getElementById('profStats').innerHTML =
     `<span>${NEURON} <b>${profile.neurons}</b></span><span>заїздів <b>${profile.races}</b></span>` +
     `<span>перемог <b>${profile.wins}</b></span><span>змагань <b>${COMPS.filter(c=>profile.comps[c.id]).length}/${COMPS.filter(c=>compVisible(c)).length}</b></span>`;
+  renderSpeedChart(document.getElementById('profChart'), profile.hist || {});
   const list = document.getElementById('playerList');
   const names = Object.keys(store.players).sort((a, b)=>a===player ? -1 : b===player ? 1 : a.localeCompare(b, 'uk'));
   list.innerHTML = names.map(n=>{
