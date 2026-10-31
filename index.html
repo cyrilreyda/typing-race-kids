@@ -4,9 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Клавіатурні перегони Junior · Лабораторія</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="fonts/fonts.css" rel="stylesheet">   <!-- локальні шрифти: гра працює без інтернету -->
+<link rel="manifest" href="manifest.webmanifest">   <!-- гру можна встановити як програму -->
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="theme-color" content="#16A3A0">
 <style>
   :root{
     --bg:#F6F5FB; --ink:#1B1B3A; --ink-soft:#514F72; --surface:#FFFFFF; --line:#E4E1F5;
@@ -2440,6 +2442,9 @@ function route(){
   }
 }
 document.addEventListener('keydown', e=>{ if(e.ctrlKey && e.altKey && e.code === 'KeyZ'){ e.preventDefault(); setLoud(!loud); } });
+// Офлайн: обробник sw.js зберігає гру в браузері, щоб вона відкривалась без інтернету.
+// Працює лише на сайті (http/https); з папки (file://) гра й так відкривається без мережі
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 route();
 window.addEventListener('hashchange', ()=>{ if(readResultLink() || readProfileLink()) route(); });
 </script>

@@ -4,9 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Як грати · Клавіатурні перегони Junior</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="../fonts/fonts.css" rel="stylesheet">   <!-- локальні шрифти: гра працює без інтернету -->
+<link rel="icon" type="image/png" href="../icons/icon-192.png">
 <style>
   :root{
     --bg:#F6F5FB; --ink:#1B1B3A; --ink-soft:#514F72; --surface:#FFFFFF; --line:#E4E1F5;
@@ -255,5 +254,10 @@
   <footer>Клавіатурні перегони Junior · Інструкція · на основі <a href="https://cikavo.me/labs/typing-race/">гри з Лабораторії</a></footer>
 </main>
 
+<script>
+// Офлайн: обробник sw.js зберігає гру в браузері, щоб вона відкривалась без інтернету.
+// Працює лише на сайті (http/https); з папки (file://) гра й так відкривається без мережі
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('../sw.js').catch(()=>{});
+</script>
 </body>
 </html>
