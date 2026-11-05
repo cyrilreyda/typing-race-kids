@@ -9,9 +9,10 @@ const TIMEOUT = 5000;   // повільна мережа в класі — пі�
 self.addEventListener('install', e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));
 });
+// Видаляємо лише старі версії цієї гри: усі ігри сайту cyrilreyda.github.io ділять одне сховище кешів.
 self.addEventListener('activate', e=>{
   e.waitUntil(caches.keys()
-    .then(keys=>Promise.all(keys.filter(k=>k !== CACHE).map(k=>caches.delete(k))))
+    .then(keys=>Promise.all(keys.filter(k=>k.startsWith('typing-race-kids-') && k !== CACHE).map(k=>caches.delete(k))))
     .then(()=>self.clients.claim()));
 });
 self.addEventListener('fetch', e=>{
