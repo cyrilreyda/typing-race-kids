@@ -245,9 +245,9 @@
   .unlock b{font-family:'Baloo 2',sans-serif; font-size:17px;}
   .unlock .track-prev{border-radius:var(--radius-s); margin-top:8px;}
   .win-actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:6px;}
-  /* Кнопки вікна результату завжди видно: вони прилипають до низу вікна, а вміст над ними прокручується */
-  #overlay .win{max-height:calc(100vh - 32px); padding-bottom:0;}
-  #overlay .win-actions{position:sticky; bottom:0; z-index:1; background:var(--surface); padding:12px 0 22px; box-shadow:0 -12px 12px -12px rgba(27,27,58,.25);}
+  /* Кнопки вікна результату стоять одразу під зірками, над показниками, тож їх видно без прокрутки */
+  #overlay .win{max-height:calc(100vh - 32px);}
+  #overlay .win-actions{margin:0 0 14px;}
   /* Невисокий екран: усе компактніше, нові автівки й траси — в один ряд */
   @media (max-height:780px){
     #overlay .win{padding-top:16px;}
@@ -574,6 +574,10 @@
     <h2 id="winTitle">Перемога!</h2>
     <p class="sub" id="wSub"></p>
     <div class="stars" id="wStars"></div>
+    <div class="win-actions">
+      <button class="btn btn-primary" id="againBtn">🏁 Ще заїзд</button>
+      <button class="btn btn-ghost" id="toSetupBtn">🏁 До перегонів</button>
+    </div>
     <div class="result">
       <div><b id="wSpeed">0</b><small>знаків/хв</small></div>
       <div><b id="wAcc">0%</b><small>точність</small></div>
@@ -584,10 +588,6 @@
     <div id="wRecord"></div>
     <div id="wWeak"></div>
     <div id="wUnlock"></div>
-    <div class="win-actions">
-      <button class="btn btn-primary" id="againBtn">🏁 Ще заїзд</button>
-      <button class="btn btn-ghost" id="toSetupBtn">🏁 До перегонів</button>
-    </div>
   </div>
 </div>
 
