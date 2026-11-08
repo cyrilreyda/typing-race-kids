@@ -1019,6 +1019,14 @@ function botCpmFor(lang, level, model){
   const p = profile.pace?.[paceKey(lang, level)] || profile.pace?.all;
   return p ? Math.min(200, Math.max(3, Math.round(p * PACE_RATIO[model]))) : CAR_CPM[model];
 }
+// Робот у змаганні: норматив змагання (cpm) — нижня межа. Якщо швидкість учня саме на тексті етапу (мова й рівень)
+// уже заміряна і робот під неї швидший за норматив — він їде під учня за тим самим PACE_RATIO автівки й не пригальмовує.
+// Текст, якого учень ще не друкував (знаки, код), спершу йде за нормативом: цей етап і заміряє швидкість
+function compBotCpm(c, stage, car){
+  const p = profile.pace?.[paceKey(stage[1], stageLevel(stage))];
+  const cpm = p && car ? Math.min(200, Math.round(p * PACE_RATIO[car])) : 0;
+  return cpm > c.cpm ? { cpm, paced:true } : { cpm:c.cpm, paced:false };
+}
 function updatePace(lang, level, speed){
   const pace = profile.pace ||= {};
   for(const k of [paceKey(lang, level), 'all']){
@@ -1459,6 +1467,12 @@ const LINK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 // Змагання, в якому учень бере участь: для нього з'являється окрема вкладка
 let selComp = null;
 const runOf = c => profile.runs[c.id] || { stage:0, results:[] };
+// Суперник наступного етапу: норматив або, якщо учень швидший, робот під учня (compBotCpm)
+function compRules(c){
+  const bot = compBotCpm(c, c.stages[Math.min(runOf(c).stage, c.stages.length - 1)], compCar(c));
+  const tip = bot.paced ? `Суперник наступного етапу їде під твою швидкість (норматив ${c.cpm} зн/хв)` : 'Швидкість суперника';
+  return `<span title="${tip} · мінімальна точність етапу">${KEY_ICON} ${bot.cpm} зн/хв · 🎯 від ${c.minAcc}%</span>`;
+}
 function setJoined(id){
   selComp = id;
   profile.joined = id;
@@ -1516,7 +1530,7 @@ function renderCompPane(){
       <button type="button" class="share-ico" data-prog="${c.id}" title="Поділитися результатами">${LINK_ICON}</button>
     </div>
     <div class="cp-info">
-      <span class="comp-rules"><span title="Швидкість суперника · мінімальна точність етапу">${KEY_ICON} ${c.cpm} зн/хв · 🎯 від ${c.minAcc}%</span>
+      <span class="comp-rules">${compRules(c)}
         ${c.cars ? `<span class="comp-cars">${c.cars.map(id=>{ const open = isOpen('car', id);
           return `<span class="comp-car${open ? '' : ' locked'}">${carSVG(id, open ? carColor(id) : '#999', 'me')}${CARS[id].name}</span>`; }).join('')}</span>` : ''}</span>
       <span class="cp-progress"><span class="bar"><i style="width:${done/n*100}%"></i></span>${done} з ${n}</span>
@@ -1582,7 +1596,7 @@ function renderComps(){
         <div class="comp-num">${i+1}<span class="diff" title="Складність ${c.lvl || i+1} з ${COMPS.length}">${diff}</span></div>
         <h4>${c.name}<button type="button" class="share-mini" data-link="${i+1}" title="Поділитися змаганням">${LINK_ICON}</button></h4></div></div>
       <div class="stages">${chips}</div>
-      <div class="comp-rules"><span title="Швидкість суперника · мінімальна точність етапу">${KEY_ICON} ${c.cpm} зн/хв · 🎯 від ${c.minAcc}%</span>
+      <div class="comp-rules">${compRules(c)}
         ${c.cars ? `<span class="comp-cars">${c.cars.map(id=>{ const open = isOpen('car', id);
           return `<span class="comp-car${open ? '' : ' locked'}">${carSVG(id, open ? carColor(id) : '#999', 'me')}${CARS[id].name}</span>`; }).join('')}</span>` : ''}</div>
       ${best || run?.results.length ? `<button type="button" class="share-ico" data-prog="${c.id}" title="Поділитися результатами">${LINK_ICON}</button>` : ''}
@@ -1779,7 +1793,8 @@ function startComp(id){
   saveStore();
   const stage = c.stages[profile.runs[id].stage];
   const [track, lang] = stage;
-  startRace({ track, lang, cpm:c.cpm, model:car, comp:c, level:stageLevel(stage) });
+  const bot = compBotCpm(c, stage, car);
+  startRace({ track, lang, cpm:bot.cpm, paced:bot.paced, model:car, comp:c, level:stageLevel(stage) });
 }
 
 function runCountdown(){
