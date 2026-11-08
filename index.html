@@ -141,8 +141,12 @@
   .stats{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
   .stat{background:var(--bg); border-radius:var(--radius-s); padding:4px 12px; font-size:13px; color:var(--ink-soft);}
   .stat b{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:17px; color:var(--ink); margin-right:3px;}
-  .text-box{position:relative; display:flex; flex-wrap:wrap; align-items:baseline; row-gap:4px;
+  .text-box{position:relative;
     font-size:27px; font-weight:600; line-height:1.55; padding:12px 14px; border-radius:var(--radius-m); background:#FBFAFE; border:1.5px solid var(--line); min-height:70px;}
+  /* Видно два рядки тексту: довгий текст швидкого учня прокручується, щоб клавіатура лишалась на екрані.
+     Відступ 3px — щоб не обрізалась підсвітка поточної літери */
+  .text-lines{position:relative; display:flex; flex-wrap:wrap; align-items:baseline; row-gap:4px;
+    max-height:calc(2 * 1.55em + 4px + 6px); overflow:hidden; padding:3px 2px; margin:-3px -2px;}
   .word{white-space:nowrap;}
   .ch{border-radius:5px; padding:0 1px; transition:background .1s ease;}
   .ch.sp{display:inline-block; width:.55em;}
@@ -558,7 +562,7 @@
       <span class="stat"><b id="sErr">0</b>помилок</span>
       <span class="stat"><b id="sAcc">100</b>% точність</span>
     </div>
-    <div class="text-box" id="textBox"></div>
+    <div class="text-box" id="textBox"><div class="text-lines" id="textLines"></div></div>
     <div class="hint-row">
       <div class="hint" id="hint"></div>
       <button class="exit-btn" id="exitBtn" type="button" title="Вийти із заїзду (Esc)" aria-label="Вийти із заїзду">✕</button>
@@ -1061,14 +1065,17 @@ const UNLOCKS = [
 const unlockAt = (kind, id) => UNLOCKS.find(u=>u.kind===kind && u.id===id).at;
 const isOpen = (kind, id, n = profile.neurons) => n >= unlockAt(kind, id);
 
-// Нейрончики за заїзд: складність траси + швидкість, помножені на точність, + бонус за перемогу
+// Нейрончики за заїзд: (складність траси + RIDE_PTS) × точність + бонус за перемогу + FASTER_PTS, якщо учень надрукував
+// швидше, ніж зазвичай на цьому тексті. За саму швидкість нейрончиків немає: робот у кожного свій, а текст довшає
+// разом зі швидкістю (TEXT_FIT), тож траси й автівки відкриваються за час гри й точність, а не за швидкість
+const RIDE_PTS = 4, FASTER_PTS = 3;
 function neuronsFor(r){
   const base = TRACKS[trackIdx(r.track)].base;
-  const speedPts = Math.round(r.speed / (BOOST ? 15 : 5));
   const [a1, a2, a3] = BOOST ? [95, 90, 80] : [90, 80, 70];
   const mult = r.errors === 0 ? 1.5 : r.acc >= a1 ? 1.2 : r.acc >= a2 ? 1 : r.acc >= a3 ? 0.6 : 0.3;
   const win = r.won ? base : 0;
-  return { base, speedPts, mult, win, total: Math.round((base + speedPts) * mult) + win };
+  const faster = r.faster ? FASTER_PTS : 0;
+  return { base, ride:RIDE_PTS, mult, win, faster, total: Math.round((base + RIDE_PTS) * mult) + win + faster };
 }
 const NEURON = `<svg class="nico" viewBox="0 0 24 24" fill="none" aria-hidden="true">
   <line x1="16.2" y1="12" x2="20.3" y2="12" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="20.3" cy="12" r="1.2" fill="#FFC93C"/>
@@ -1719,6 +1726,7 @@ function flashKey(ch){
 
 /* ================= Заїзд ================= */
 const textBox = document.getElementById('textBox');
+const textLines = document.getElementById('textLines');
 const typer = document.getElementById('typer');
 const tipEl = document.getElementById('tip');
 const countdownEl = document.getElementById('countdown');
@@ -1732,25 +1740,38 @@ function shuffle(a){
 }
 
 
-function makeText(lang, level){
+// Довжина тексту під учня: щоб заїзд тривав приблизно TEXT_FIT.sec секунд, швидкому учневі дістається більше слів
+// (pace — його звична швидкість на цьому тексті). Не коротше за звичайні n слів чи речень і не довше за maxChars
+const TEXT_FIT = { sec:80, maxChars:160 };   // 160 знаків — близько 4 рядків: клавіатура лишається на екрані
+function makeText(lang, level, pace = 0){
   const src = TEXTS[lang][level === 'long' || level === 'sentences' ? (BOOST ? 'full' : 'sentences') : level];
   const n = (BOOST ? { home:8, top:7, words:7, sentences:2, long:3, punct:3, ukpunct:3, digits:3, code:3 }
                    : { home:5, top:4, words:4, sentences:2, long:3, punct:2, ukpunct:2, digits:2, code:2 })[level];
-  return shuffle(src.slice()).slice(0, n).join(' ');
+  const list = shuffle(src.slice());
+  const target = Math.min(TEXT_FIT.maxChars, pace * TEXT_FIT.sec / 60);
+  let k = n;
+  while(k < list.length && list.slice(0, k + 1).join(' ').length <= target) k++;
+  return list.slice(0, k).join(' ');
 }
 
 function renderText(){
-  textBox.querySelectorAll('.word, .ch.sp').forEach(e=>e.remove());
+  textLines.textContent = '';
+  textLines.scrollTop = 0;
   spans = [];
   const mk = (c, cls)=>{ const s = document.createElement('span'); s.className = cls; s.textContent = c; spans.push(s); return s; };
   race.text.split(/( )/).forEach(part=>{
     if(!part) return;
-    if(part === ' '){ textBox.appendChild(mk(' ', 'ch sp')); return; }
+    if(part === ' '){ textLines.appendChild(mk(' ', 'ch sp')); return; }
     const w = document.createElement('span');
     w.className = 'word';
     for(const c of part) w.appendChild(mk(c, 'ch'));
-    textBox.appendChild(w);
+    textLines.appendChild(w);
   });
+}
+// Рядок із поточною літерою — першим у віконці (останній рядок тексту показуємо разом із попереднім)
+function scrollLines(){
+  const top = spans[race.pos].offsetTop - spans[0].offsetTop;
+  if(top !== textLines.scrollTop) textLines.scrollTo({ top, behavior:'smooth' });
 }
 
 
@@ -1759,8 +1780,9 @@ function startRace(opts){
   overlay.classList.remove('show');
   cancelAnimationFrame(rafId);
   const level = opts.level || TRACK_LEVEL[opts.track];
+  const pace = opts.drill ? 0 : paceOf(opts.lang, level, true);   // звична швидкість учня на цьому тексті
   race = {
-    text: opts.text || makeText(opts.lang, level), weak:{}, drill:opts.drill || null, track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
+    text: opts.text || makeText(opts.lang, level, pace), pace, weak:{}, drill:opts.drill || null, track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
     pos:0, errors:0, missed:false, streak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
     botCpm:opts.cpm, botChars:0, seed:Math.random()*10, lastFrame:0,
     botDone:false, assist:!opts.day && (opts.paced || !BOOST && !opts.comp?.pro), assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
@@ -1980,6 +2002,7 @@ function handleChar(ch){
     if(race.pos === race.text.length) return finish();
     if(++race.streak % STREAK_STEP === 0) praise(race.streak);
     spans[race.pos].classList.add('cur');
+    if(race.text[race.pos - 1] === ' ') scrollLines();   // новий рядок починається лише після пробілу
     showNextKey(race.text[race.pos]);
     return;
   }
@@ -2061,10 +2084,11 @@ function finish(){
   if(proNow) profile.pro = true;
 
   // Нейрончики
-  const nb = neuronsFor({ track:race.track, speed, errors:race.errors, acc, won });
+  const nb = neuronsFor({ track:race.track, speed, errors:race.errors, acc, won, faster: race.pace && speed > race.pace });
   let gain = nb.total;
-  const parts = [`траса +${nb.base}`, `швидкість +${nb.speedPts}`, `точність ×${nb.mult}`];
+  const parts = [`траса +${nb.base}`, `заїзд +${nb.ride}`, `точність ×${nb.mult}`];
   if(nb.win) parts.push(`перемога +${nb.win}`);
+  if(nb.faster) parts.push(`швидше, ніж зазвичай +${nb.faster}`);
 
   // Змагання
   let compHTML = '';
