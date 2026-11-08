@@ -988,7 +988,7 @@ const CAR_ORDER = ['beetle','taxi','jeep','monster','sport','f1'];
 const CAR_CPM = BOOST ? { beetle:35, taxi:50, jeep:65, monster:80, sport:100, f1:125 }
                       : { beetle:12, taxi:16, jeep:20, monster:25, sport:30, f1:40 };
 const BOT_COLOR = '#6C5CE7';
-// Підтримка для початківців (не діє у змаганнях pro):
+// Підтримка для початківців (не діє у змаганнях pro і у вільних заїздах, де робот уже їде під учня — див. PACE_RATIO):
 // delay — робот рушає на стільки секунд пізніше;
 // поки дитина друкує, робот, що випередив її (більш ніж на lead знаків), плавно (ease) збавляє швидкість
 // до ratio від середньої швидкості дитини, але не нижче min від своєї — тож гонка йде впритул;
@@ -1005,6 +1005,27 @@ const TEACHER = (()=>{
   const cpm = Math.round(+q.get('robot'));
   return { cpm: cpm >= 3 && cpm <= 150 ? cpm : 0, noBot: q.has('bez-robota') };
 })();
+// Робот під гравця (вільні заїзди): перший заїзд заміряє швидкість учня, далі робот їде трохи повільніше
+// за неї — PACE_RATIO від швидкості учня на цьому рівні тексту (а на новому рівні — від загальної).
+// Чим крутіша автівка, тим ближче робот до учня, і такий робот не пригальмовує (ASSIST): учень здебільшого виграє,
+// але не завжди. У перший заїзд робот їде зі швидкістю автівки (CAR_CPM) з підтримкою ASSIST.
+// Після кожного заїзду (крім тренування клавіш) швидкість учня оновлюється: швидший заїзд важить up,
+// повільніший — down, щоб один невдалий заїзд не робив робота зовсім повільним
+const PACE_RATIO = { beetle:0.84, taxi:0.86, jeep:0.88, monster:0.9, sport:0.92, f1:0.94 };
+const PACE_EMA = { up:0.5, down:0.25, minChars:10 };
+const paceKey = (lang, level) => `${lang}-${level}`;
+function botCpmFor(lang, level, model){
+  if(TEACHER.cpm) return TEACHER.cpm;
+  const p = profile.pace?.[paceKey(lang, level)] || profile.pace?.all;
+  return p ? Math.min(200, Math.max(3, Math.round(p * PACE_RATIO[model]))) : CAR_CPM[model];
+}
+function updatePace(lang, level, speed){
+  const pace = profile.pace ||= {};
+  for(const k of [paceKey(lang, level), 'all']){
+    const old = pace[k];
+    pace[k] = old ? Math.round((old + (speed - old) * (speed > old ? PACE_EMA.up : PACE_EMA.down)) * 10) / 10 : speed;
+  }
+}
 
 /* ================= Нейрончики й розблокування ================= */
 const UNLOCKS = [
@@ -1170,6 +1191,10 @@ function loadPlayer(name){
   profile.settings = settings = { ...DEFAULT_SETTINGS, ...profile.settings };
   settings.colors = { ...settings.colors };   // власна копія кольорів у кожного гравця
   profile.runs ||= {};
+  if(!profile.pace && profile.hist){   // гравець, що грав до заміру швидкості: беремо середню за останній день
+    const last = profile.hist[Math.max(...Object.keys(profile.hist))];
+    if(last?.[1]) profile.pace = { all: Math.round(last[0] / last[1]) };
+  }
   selComp = compById(profile.joined) ? profile.joined : null;
   saveStore();
   renderPlayerBtn();
@@ -1692,7 +1717,7 @@ function startRace(opts){
     text: opts.text || makeText(opts.lang, level), weak:{}, drill:opts.drill || null, track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
     pos:0, errors:0, missed:false, streak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
     botCpm:opts.cpm, botChars:0, seed:Math.random()*10, lastFrame:0,
-    botDone:false, assist:!BOOST && !opts.comp?.pro, assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
+    botDone:false, assist:!BOOST && !opts.comp?.pro && !opts.paced, assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
     hold:{ focus:false, alert:false }   // пауза: сторінка без фокусу або підказка про мову чи Caps Lock
   };
   setupEl.hidden = true;
@@ -1708,7 +1733,8 @@ function startRace(opts){
   const c = race.comp;
   document.getElementById('raceInfo').textContent = c
     ? `🏆 ${c.name} · етап ${profile.runs[c.id].stage + 1}/${c.stages.length} · 🎯 від ${c.minAcc}%`
-    : race.drill ? `🎯 Тренування клавіш: ${race.drill.map(keyName).join(', ')}` : '';
+    : race.drill ? `🎯 Тренування клавіш: ${race.drill.map(keyName).join(', ')}`
+    : opts.calib ? '🤖 Перший заїзд: робот дивиться, як швидко ти друкуєш' : '';
   const notes = [BOOST && 'нормативи 5–7 класів'];
   if(!c && !race.drill) notes.push(TEACHER.noBot ? 'тренування без робота' : TEACHER.cpm && `робот ${TEACHER.cpm} зн/хв`);
   document.getElementById('teacherNote').textContent = notes.some(Boolean) ? 'Налаштування вчителя: ' + notes.filter(Boolean).join(' · ') : '';
@@ -1739,7 +1765,10 @@ function startDrill(lang, keys){
   startRace({ track:settings.track, lang, cpm:CAR_CPM[settings.model], model:settings.model, noBot:true, level:'drill', drill:keys, text:drillText(lang, keys) });
 }
 function startFree(){
-  startRace({ track:settings.track, lang:settings.lang, cpm:TEACHER.cpm || CAR_CPM[settings.model], model:settings.model, noBot:TEACHER.noBot });
+  const level = TRACK_LEVEL[settings.track];
+  const known = !TEACHER.cpm && !!profile.pace?.all;   // швидкість учня вже заміряна — робот під неї й не пригальмовує
+  startRace({ track:settings.track, lang:settings.lang, cpm:botCpmFor(settings.lang, level, settings.model), model:settings.model, noBot:TEACHER.noBot,
+              paced:known, calib:!known && !TEACHER.cpm && !TEACHER.noBot });
 }
 function startComp(id){
   const c = compById(id);
@@ -1978,6 +2007,7 @@ function finish(){
   if(!race.drill){   // швидкість по днях — для графіка в профілі: [сума швидкостей, заїздів, найкраща]
     const h = (profile.hist ||= {})[today()] ||= [0, 0, 0];
     h[0] += speed; h[1]++; h[2] = Math.max(h[2], speed);
+    if(typed >= PACE_EMA.minChars) updatePace(race.lang, race.level, speed);   // під цю швидкість підлаштується робот
   }
   if(won) profile.wins++;
   const proNow = !BOOST && !profile.pro && won && speed >= PRO_CPM && acc >= 90;   // результат, незвичний для 2–3 класу
