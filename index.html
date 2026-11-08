@@ -1873,7 +1873,7 @@ function praise(n){
   textBox.querySelector('.praise')?.remove();
   const p = document.createElement('div');
   p.className = 'praise';
-  p.textContent = n === STREAK_STEP ? `🔥 ${n} без помилок!` : n === 2 * STREAK_STEP ? `⭐ ${n} поспіль — супер!` : `🚀 ${n} без жодної помилки!`;
+  p.textContent = n === STREAK_STEP ? `🔥 ${n} без помилок!` : n === 2 * STREAK_STEP ? `⭐ ${n} поспіль — супер!` : `🏆 ${n} без жодної помилки!`;
   textBox.appendChild(p);
   setTimeout(()=>p.remove(), 2300);
   if(loud) sparkle(); else { tone(660, .1, 'sine', .03); tone(880, .14, 'sine', .03, .09); }
@@ -2062,7 +2062,7 @@ function finish(){
     (opened.length ? `<div class="unlock"><b>🔓 Відкрито за нейрончики!</b><div class="unlock-list">${opened.map(u=>u.kind==='car'
         ? `<div class="unlock-item"><div class="thumb">${carSVG(u.id, carColor(u.id), 'me')}</div><span>Автівка <b>${CARS[u.id].name}</b></span></div>`
         : `<div class="unlock-item"><div class="thumb">${trackPreview(TRACKS[trackIdx(u.id)])}</div><span>Траса <b>${TRACKS[trackIdx(u.id)].emoji} ${TRACKS[trackIdx(u.id)].name}</b></span></div>`).join('')}</div></div>` : '') +
-    (proNow ? `<div class="unlock"><b>🚀 Ти друкуєш дуже швидко! Відкрито нові змагання</b><div class="unlock-list">${COMPS.filter(c=>c.pro).map(c=>
+    (proNow ? `<div class="unlock"><b>⚡ Ти друкуєш дуже швидко! Відкрито нові змагання</b><div class="unlock-list">${COMPS.filter(c=>c.pro).map(c=>
         `<div class="unlock-item"><div class="thumb">${badgeHTML(c.badge)}</div><span>Змагання <b>${c.name}</b></span></div>`).join('')}</div></div>` : '');
 
   const againBtn = document.getElementById('againBtn');
