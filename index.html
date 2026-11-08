@@ -988,7 +988,7 @@ const CAR_ORDER = ['beetle','taxi','jeep','monster','sport','f1'];
 const CAR_CPM = BOOST ? { beetle:35, taxi:50, jeep:65, monster:80, sport:100, f1:125 }
                       : { beetle:12, taxi:16, jeep:20, monster:25, sport:30, f1:40 };
 const BOT_COLOR = '#6C5CE7';
-// Підтримка для початківців (не діє у змаганнях pro і у вільних заїздах, де робот уже їде під учня — див. PACE_RATIO):
+// Підтримка для початківців (не діє у змаганнях pro і в ?boost, окрім робота під учня, і в день робота — див. ROBOT_DAY):
 // delay — робот рушає на стільки секунд пізніше;
 // поки дитина друкує, робот, що випередив її (більш ніж на lead знаків), плавно (ease) збавляє швидкість
 // до ratio від середньої швидкості дитини, але не нижче min від своєї — тож гонка йде впритул;
@@ -1005,27 +1005,26 @@ const TEACHER = (()=>{
   const cpm = Math.round(+q.get('robot'));
   return { cpm: cpm >= 3 && cpm <= 150 ? cpm : 0, noBot: q.has('bez-robota') };
 })();
-// Робот під гравця (вільні заїзди): перший заїзд заміряє швидкість учня, далі робот їде трохи повільніше
-// за неї — PACE_RATIO від швидкості учня на цьому рівні тексту (а на новому рівні — від загальної).
-// Чим крутіша автівка, тим ближче робот до учня, і такий робот не пригальмовує (ASSIST): учень здебільшого виграє,
-// але не завжди. У перший заїзд робот їде зі швидкістю автівки (CAR_CPM) з підтримкою ASSIST.
+// Робот під гравця: перший заїзд заміряє швидкість учня, далі робот їде трохи повільніше за неї — PACE_RATIO
+// від швидкості учня на цьому рівні тексту (у вільному заїзді на новому рівні — від загальної). Чим крутіша автівка,
+// тим ближче робот до учня; вирвавшись уперед, він пригальмовує (ASSIST), тож гонка йде впритул.
+// День робота: приблизно в кожному шостому заїзді (ROBOT_DAY.chance, але не двічі поспіль) робот їде швидше
+// за звичну швидкість учня (ROBOT_DAY.ratio) і не пригальмовує — учень виграє, лише якщо надрукує краще, ніж зазвичай.
+// Поки швидкість не заміряна, робот їде зі швидкістю автівки (CAR_CPM), як раніше.
 // Після кожного заїзду (крім тренування клавіш) швидкість учня оновлюється: швидший заїзд важить up,
 // повільніший — down, щоб один невдалий заїзд не робив робота зовсім повільним
 const PACE_RATIO = { beetle:0.84, taxi:0.86, jeep:0.88, monster:0.9, sport:0.92, f1:0.94 };
 const PACE_EMA = { up:0.5, down:0.25, minChars:10 };
+const ROBOT_DAY = { chance:0.2, ratio:1.1 };
 const paceKey = (lang, level) => `${lang}-${level}`;
-function botCpmFor(lang, level, model){
-  if(TEACHER.cpm) return TEACHER.cpm;
-  const p = profile.pace?.[paceKey(lang, level)] || profile.pace?.all;
-  return p ? Math.min(200, Math.max(3, Math.round(p * PACE_RATIO[model]))) : CAR_CPM[model];
-}
-// Робот у змаганні: норматив змагання (cpm) — нижня межа. Якщо швидкість учня саме на тексті етапу (мова й рівень)
-// уже заміряна і робот під неї швидший за норматив — він їде під учня за тим самим PACE_RATIO автівки й не пригальмовує.
-// Текст, якого учень ще не друкував (знаки, код), спершу йде за нормативом: цей етап і заміряє швидкість
-function compBotCpm(c, stage, car){
-  const p = profile.pace?.[paceKey(stage[1], stageLevel(stage))];
-  const cpm = p && car ? Math.min(200, Math.round(p * PACE_RATIO[car])) : 0;
-  return cpm > c.cpm ? { cpm, paced:true } : { cpm:c.cpm, paced:false };
+const paceOf = (lang, level, orAll) => profile.pace?.[paceKey(lang, level)] || (orAll && profile.pace?.all) || 0;
+let lastRobotDay = false;
+function rollRobotDay(){ return lastRobotDay = !lastRobotDay && Math.random() < ROBOT_DAY.chance; }
+// Швидкість робота: під учня (p — його швидкість на цьому тексті), але не нижче floor.
+// У змаганні floor — норматив: учневі, повільнішому за нього, лишається робот за нормативом
+function botFor(p, model, floor, day){
+  const cpm = p && model ? Math.min(200, Math.max(3, Math.round(p * (day ? ROBOT_DAY.ratio : PACE_RATIO[model])))) : 0;
+  return cpm > floor ? { cpm, paced:true, day } : { cpm:floor, paced:false, day:day && !!p };
 }
 function updatePace(lang, level, speed){
   const pace = profile.pace ||= {};
@@ -1467,9 +1466,10 @@ const LINK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 // Змагання, в якому учень бере участь: для нього з'являється окрема вкладка
 let selComp = null;
 const runOf = c => profile.runs[c.id] || { stage:0, results:[] };
-// Суперник наступного етапу: норматив або, якщо учень швидший, робот під учня (compBotCpm)
+// Суперник наступного етапу: норматив або, якщо учень швидший, робот під учня (botFor; день робота не показуємо)
 function compRules(c){
-  const bot = compBotCpm(c, c.stages[Math.min(runOf(c).stage, c.stages.length - 1)], compCar(c));
+  const stage = c.stages[Math.min(runOf(c).stage, c.stages.length - 1)];
+  const bot = botFor(paceOf(stage[1], stageLevel(stage)), compCar(c), c.cpm, false);
   const tip = bot.paced ? `Суперник наступного етапу їде під твою швидкість (норматив ${c.cpm} зн/хв)` : 'Швидкість суперника';
   return `<span title="${tip} · мінімальна точність етапу">${KEY_ICON} ${bot.cpm} зн/хв · 🎯 від ${c.minAcc}%</span>`;
 }
@@ -1731,7 +1731,7 @@ function startRace(opts){
     text: opts.text || makeText(opts.lang, level), weak:{}, drill:opts.drill || null, track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
     pos:0, errors:0, missed:false, streak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
     botCpm:opts.cpm, botChars:0, seed:Math.random()*10, lastFrame:0,
-    botDone:false, assist:!BOOST && !opts.comp?.pro && !opts.paced, assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
+    botDone:false, assist:!opts.day && (opts.paced || !BOOST && !opts.comp?.pro), assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
     hold:{ focus:false, alert:false }   // пауза: сторінка без фокусу або підказка про мову чи Caps Lock
   };
   setupEl.hidden = true;
@@ -1747,8 +1747,7 @@ function startRace(opts){
   const c = race.comp;
   document.getElementById('raceInfo').textContent = c
     ? `🏆 ${c.name} · етап ${profile.runs[c.id].stage + 1}/${c.stages.length} · 🎯 від ${c.minAcc}%`
-    : race.drill ? `🎯 Тренування клавіш: ${race.drill.map(keyName).join(', ')}`
-    : opts.calib ? '🤖 Перший заїзд: робот дивиться, як швидко ти друкуєш' : '';
+    : race.drill ? `🎯 Тренування клавіш: ${race.drill.map(keyName).join(', ')}` : '';
   const notes = [BOOST && 'нормативи 5–7 класів'];
   if(!c && !race.drill) notes.push(TEACHER.noBot ? 'тренування без робота' : TEACHER.cpm && `робот ${TEACHER.cpm} зн/хв`);
   document.getElementById('teacherNote').textContent = notes.some(Boolean) ? 'Налаштування вчителя: ' + notes.filter(Boolean).join(' · ') : '';
@@ -1780,9 +1779,9 @@ function startDrill(lang, keys){
 }
 function startFree(){
   const level = TRACK_LEVEL[settings.track];
-  const known = !TEACHER.cpm && !!profile.pace?.all;   // швидкість учня вже заміряна — робот під неї й не пригальмовує
-  startRace({ track:settings.track, lang:settings.lang, cpm:botCpmFor(settings.lang, level, settings.model), model:settings.model, noBot:TEACHER.noBot,
-              paced:known, calib:!known && !TEACHER.cpm && !TEACHER.noBot });
+  const p = TEACHER.cpm ? 0 : paceOf(settings.lang, level, true);
+  const bot = botFor(p, settings.model, TEACHER.cpm || (p ? 3 : CAR_CPM[settings.model]), !!p && !TEACHER.noBot && rollRobotDay());
+  startRace({ track:settings.track, lang:settings.lang, cpm:bot.cpm, paced:bot.paced, day:bot.day, model:settings.model, noBot:TEACHER.noBot });
 }
 function startComp(id){
   const c = compById(id);
@@ -1793,8 +1792,9 @@ function startComp(id){
   saveStore();
   const stage = c.stages[profile.runs[id].stage];
   const [track, lang] = stage;
-  const bot = compBotCpm(c, stage, car);
-  startRace({ track, lang, cpm:bot.cpm, paced:bot.paced, model:car, comp:c, level:stageLevel(stage) });
+  const p = paceOf(lang, stageLevel(stage));   // текст, якого учень ще не друкував (знаки, код), — спершу за нормативом
+  const bot = botFor(p, car, c.cpm, !!p && rollRobotDay());
+  startRace({ track, lang, cpm:bot.cpm, paced:bot.paced, day:bot.day, model:car, comp:c, level:stageLevel(stage) });
 }
 
 function runCountdown(){
