@@ -37,6 +37,12 @@
   a.top-btn{text-decoration:none;}
   @media (max-width:380px){ .topbar-inner{gap:6px; padding:10px 12px;} .back-link{font-size:13px;} .top-btn{padding:3px 9px;} }
   @media (max-width:640px){ .game-title{display:none;} .top-btn .long{display:none;} .top-btn{padding:4px 11px;} .topbar-inner{gap:8px;} }
+  /* Повний екран: стрілки від центру — розгорнути, до центру — згорнути */
+  .fs-btn{align-self:stretch; display:flex; align-items:center; padding:0 9px;}
+  .fs-btn svg{width:20px; height:20px;}
+  .fs-btn[hidden], .fs-btn .fs-off, .fs-btn.full .fs-on{display:none;}
+  .fs-btn.full .fs-off{display:block;}
+  @media (max-width:640px){ .fs-btn{padding:0 8px;} }
 
   main{padding:16px 0 40px;}
 
@@ -493,6 +499,10 @@
   </div>
   <a class="top-btn" href="guide/index.html" title="Інструкція: змагання й посилання на результати">❓<span class="long"> Як грати</span></a>
   <button class="top-btn player-btn" id="playerBtn" title="Профіль гравця"><span class="pb-car" id="playerCar"></span><span class="long" id="playerName">Гравець</span></button>
+  <button class="top-btn fs-btn" id="fsBtn" type="button" title="На весь екран (F11)" aria-label="На весь екран (F11)" hidden>
+    <svg class="fs-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 10.5L20 4M14 4h6v6M10.5 13.5L4 20M4 14v6h6"/></svg>
+    <svg class="fs-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4l-6 6M14 5v5h5M4 20l6-6M5 14h5v5"/></svg>
+  </button>
 </div></div>
 
 <main class="container">
@@ -1460,6 +1470,28 @@ function showToast(text){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>t.classList.remove('show'), 1600);
 }
+
+/* ================= Повний екран ================= */
+// Кнопка праворуч від гравця. Повний екран через F11 теж помічаємо (display-mode або вікно на весь екран), тоді іконка — «згорнути»
+const fsBtn = document.getElementById('fsBtn');
+const isFull = ()=>!!document.fullscreenElement || matchMedia('(display-mode: fullscreen)').matches
+  || (innerWidth >= screen.width - 2 && innerHeight >= screen.height - 2);
+function updateFsBtn(){
+  const full = isFull();
+  fsBtn.classList.toggle('full', full);
+  fsBtn.title = full ? 'Звичайне вікно (F11)' : 'На весь екран (F11)';
+  fsBtn.setAttribute('aria-label', fsBtn.title);
+}
+fsBtn.addEventListener('click', ()=>{
+  fsBtn.blur();   // щоб пробіл не натискав кнопку ще раз
+  if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  else if(isFull()) showToast('Щоб вийти з повного екрана, натисни F11');   // режим F11 сторінка вимкнути не може
+  else document.documentElement.requestFullscreen().catch(()=>{});
+});
+document.addEventListener('fullscreenchange', updateFsBtn);
+window.addEventListener('resize', updateFsBtn);
+fsBtn.hidden = !document.fullscreenEnabled;   // на iPhone повного екрана для сторінок немає
+updateFsBtn();
 // Горизонтальна іконка посилання (дві ланки)
 const LINK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
   <path d="M10 7.5H7a4.5 4.5 0 0 0 0 9h3"/><path d="M14 7.5h3a4.5 4.5 0 0 1 0 9h-3"/><path d="M8.5 12h7"/></svg>`;
