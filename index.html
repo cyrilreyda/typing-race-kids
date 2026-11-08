@@ -251,6 +251,27 @@
   .result b{display:block; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:26px; line-height:1.1; color:var(--teal-dark);}
   .result small{font-size:13px; color:var(--ink-soft);}
   .record{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px; color:#8A6200; background:#FFF4D6; border-radius:999px; display:inline-block; padding:3px 14px; margin-bottom:10px;}
+  /* ---------- Наліпки ---------- */
+  .stickers-box{margin-top:20px; padding-top:16px; border-top:1.5px dashed var(--line);}
+  .stickers-head{display:flex; align-items:baseline; gap:10px;}
+  .stickers-head h3{font-size:15px; color:var(--ink-soft);}
+  .stickers-head span{font-size:13px; color:var(--ink-soft);}
+  .stickers{display:grid; grid-template-columns:repeat(auto-fill, minmax(86px, 1fr)); gap:8px; margin-top:10px;}
+  .sticker{display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; cursor:pointer; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:12.5px; line-height:1.15;}
+  .sticker .st-ico{position:relative; overflow:hidden; width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:27px;
+    background:radial-gradient(circle at 35% 30%, #FFFFFF, #FFF1C2); border:3px solid #FFC93C; box-shadow:0 3px 0 #E0A800;}
+  .sticker.no{color:var(--ink-soft); font-weight:600;}
+  .sticker.no .st-ico{background:var(--bg); border:2px dashed var(--line); box-shadow:none;}
+  .sticker.no .st-ico span{filter:grayscale(1); opacity:.3;}
+  .sticker.new .st-ico{animation:st-beat .6s ease 2;}
+  @keyframes st-beat{50%{transform:scale(1.4);}}
+  /* Наліпка, яку збирають за кілька заїздів: знизу вгору заповнюється кольором на стільки, скільки вже зібрано */
+  .st-part{position:absolute; left:0; right:0; bottom:0; height:var(--fill); overflow:hidden; background:#FFE08A; border-top:2px solid #E0A800;}
+  .st-part span{position:absolute; left:0; right:0; bottom:0; height:48px; display:flex; align-items:center; justify-content:center;}
+  .sticker.no .st-ico .st-part, .sticker.no .st-ico .st-part span{filter:none; opacity:1;}
+  .sticker small{font-size:11.5px; font-weight:700; color:#8A6200;}
+  .unlock .stickers{display:flex; flex-wrap:wrap; justify-content:center; gap:10px 18px; margin-top:8px;}
+  .unlock .sticker{width:86px;}
   .unlock{border:2px dashed var(--yellow); border-radius:var(--radius-m); padding:10px 12px 12px; margin:4px 0 14px; animation:star-in .5s ease .6s both;}
   .unlock b{font-family:'Baloo 2',sans-serif; font-size:17px;}
   .unlock .track-prev{border-radius:var(--radius-s); margin-top:8px;}
@@ -550,6 +571,11 @@
 
     <div class="pane" id="paneComps" hidden>
       <div class="comps" id="compList"></div>
+    </div>
+
+    <div class="stickers-box">
+      <div class="stickers-head"><h3>Наліпки</h3><span id="stickerCount"></span></div>
+      <div class="stickers" id="stickers"></div>
     </div>
   </section>
 
@@ -1198,7 +1224,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'
 const STORE_KEY = BOOST ? 'typing-race-kids-boost-v1' : 'typing-race-kids-v1';
 const DEFAULT_SETTINGS = { lang:'uk', model:'beetle', track:'city', badge:'' };
 // comps: найкращий результат кожного змагання; run — змагання в процесі
-const newProfile = () => ({ neurons:0, bests:{}, races:0, wins:0, comps:{}, runs:{}, joined:null, since:today(), settings:{ ...DEFAULT_SETTINGS, colors:{} } });
+const newProfile = () => ({ neurons:0, bests:{}, races:0, wins:0, comps:{}, runs:{}, stickers:{}, joined:null, since:today(), settings:{ ...DEFAULT_SETTINGS, colors:{} } });
 let store = { current:null, players:{} };
 try{ const s = JSON.parse(localStorage.getItem(STORE_KEY)); if(s && s.players) store = s; }catch(e){}
 function saveStore(){ if(player) try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){} }
@@ -1215,6 +1241,7 @@ function loadPlayer(name){
   profile.settings = settings = { ...DEFAULT_SETTINGS, ...profile.settings };
   settings.colors = { ...settings.colors };   // власна копія кольорів у кожного гравця
   profile.runs ||= {};
+  profile.stickers ||= {};
   if(!profile.pace && profile.hist){   // гравець, що грав до заміру швидкості: беремо середню за останній день
     const last = profile.hist[Math.max(...Object.keys(profile.hist))];
     if(last?.[1]) profile.pace = { all: Math.round(last[0] / last[1]) };
@@ -1225,6 +1252,45 @@ function loadPlayer(name){
   renderHUD();
 }
 const earnedBadges = p => COMPS.filter(c=>p.comps[c.id]).map(c=>c.badge);
+
+/* ================= Наліпки ================= */
+// Наліпки за досягнення, як у «Мишачих перегонах» і «Подвійному клацанні». Одні — за один заїзд: test(r),
+// r — підсумок заїзду. Інші збираються за кілька заїздів: count(p) — скільки вже є в профілі після заїзду, need — скільки треба
+const wonOn = (p, i) => new Set(Object.keys(p.bests || {}).map(k=>k.split('-')[i])).size;   // мов (0) чи трас (1) з перемогою
+const STICKERS = [
+  { id:'first',   ico:'🏁', name:'Перший фініш',     how:'Доїхати до фінішу',                                 test:r=>true },
+  { id:'win',     ico:'🤖', name:'Обігнав робота',   how:'Приїхати до фінішу раніше за робота',                test:r=>r.won },
+  { id:'clean',   ico:'✨', name:'Чистий текст',     how:'Надрукувати текст без жодної помилки',              test:r=>r.errors === 0 },
+  { id:'streak',  ico:'🔥', name:'Без промаху',      how:'Натиснути 20 правильних клавіш поспіль',            test:r=>r.topStreak >= 20 },
+  { id:'record',  ico:'📈', name:'Новий рекорд',     how:'Побити свій рекорд швидкості на трасі',             test:r=>r.newRecord },
+  { id:'drill',   ico:'💪', name:'Над помилками',    how:'Потренувати клавіші, на яких були помилки',          test:r=>r.drill },
+  { id:'langs',   ico:'🌍', name:'Дві мови',         how:'Перемогти українською й англійською',               count:p=>wonOn(p, 0), need:2 },
+  { id:'tracks',  ico:'🗺️', name:'Мандрівник',       how:"Перемогти на всіх п'яти трасах",                    count:p=>wonOn(p, 1), need:5 },
+  { id:'races',   ico:'🚗', name:'Справжній гонщик', how:'Проїхати 25 заїздів',                               count:p=>p.races, need:25 },
+  { id:'days',    ico:'📅', name:'Щодня потроху',    how:'Грати в 5 різних днів',                             count:p=>Object.keys(p.hist || {}).length, need:5 },
+  { id:'medal',   ico:'🎖️', name:'Призер',           how:'Пройти всі етапи змагання й отримати медаль',       count:p=>Object.keys(p.comps).length, need:1 },
+  { id:'neurons', ico:'🧠', name:'Розумник',         how:'Зібрати 1000 нейрончиків',                          count:p=>p.neurons, need:1000 },
+];
+// Наліпки з count збирають за кілька заїздів: скільки вже є з need (лише для ще не отриманих)
+const stickerProgress = st=>st.count && !profile.stickers[st.id] ? Math.min(st.count(profile) || 0, st.need) : 0;
+const stickerTip = st=>{ const n = stickerProgress(st); return `${st.how}${n ? ` — уже ${n} з ${st.need}` : ''}`; };
+// Наліпка: отримана — кольорова, ще ні — сіра; та, що збирається за кілька заїздів, частково заповнена кольором,
+// а під назвою — скільки вже зібрано
+function stickerHTML(st){
+  const n = stickerProgress(st);
+  const part = n ? `<span class="st-part" style="--fill:${Math.round(n / st.need * 100)}%"><span>${st.ico}</span></span>` : '';
+  return `<span class="sticker${profile.stickers[st.id] ? '' : ' no'}" data-st="${st.id}" title="${stickerTip(st)}">` +
+    `<span class="st-ico"><span>${st.ico}</span>${part}</span>${st.name}${n ? `<small>${n} з ${st.need}</small>` : ''}</span>`;
+}
+function renderStickers(){
+  document.getElementById('stickerCount').textContent = `${STICKERS.filter(st=>profile.stickers[st.id]).length} з ${STICKERS.length}`;
+  document.getElementById('stickers').innerHTML = STICKERS.map(stickerHTML).join('');
+}
+// Клацання по наліпці підказує, за що її дають (на планшеті підказки при наведенні немає)
+document.addEventListener('click', e=>{
+  const st = STICKERS.find(st=>st.id === e.target.closest('.sticker[data-st]')?.dataset.st);
+  if(st) showToast(`${st.ico} ${stickerTip(st)}`);
+});
 const bestKey = (lang, track) => `${lang}-${track}`;
 
 const neuronEl = document.getElementById('neuronCount');
@@ -1432,6 +1498,7 @@ function renderSetup(){
   setP(carMe, 0); setP(carBot, 0);
   renderPlayerBtn();
   renderComps();
+  renderStickers();
   saveStore();
 }
 
@@ -1783,7 +1850,7 @@ function startRace(opts){
   const pace = opts.drill ? 0 : paceOf(opts.lang, level, true);   // звична швидкість учня на цьому тексті
   race = {
     text: opts.text || makeText(opts.lang, level, pace), pace, weak:{}, drill:opts.drill || null, track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
-    pos:0, errors:0, missed:false, streak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
+    pos:0, errors:0, missed:false, streak:0, topStreak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
     botCpm:opts.cpm, botChars:0, seed:Math.random()*10, lastFrame:0,
     botDone:false, assist:!opts.day && (opts.paced || !BOOST && !opts.comp?.pro), assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
     hold:{ focus:false, alert:false }   // пауза: сторінка без фокусу або підказка про мову чи Caps Lock
@@ -2001,6 +2068,7 @@ function handleChar(ch){
     setP(carMe, race.pos / race.text.length);
     if(race.pos === race.text.length) return finish();
     if(++race.streak % STREAK_STEP === 0) praise(race.streak);
+    race.topStreak = Math.max(race.topStreak, race.streak);
     spans[race.pos].classList.add('cur');
     if(race.text[race.pos - 1] === ' ') scrollLines();   // новий рядок починається лише після пробілу
     showNextKey(race.text[race.pos]);
@@ -2137,6 +2205,10 @@ function finish(){
   const before = profile.neurons;
   profile.neurons += gain;
   const opened = UNLOCKS.filter(u=>u.at > before && u.at <= profile.neurons);
+  // Наліпки
+  const run = { won, errors:race.errors, topStreak:race.topStreak, newRecord:record && prevBest > 0, drill:!!race.drill };
+  const earned = STICKERS.filter(st=>!profile.stickers[st.id] && (st.test ? st.test(run) : st.count(profile) >= st.need));
+  earned.forEach(st=>profile.stickers[st.id] = today());
   saveStore();
   renderHUD(true);
 
@@ -2164,7 +2236,9 @@ function finish(){
         ? `<div class="unlock-item"><div class="thumb">${carSVG(u.id, carColor(u.id), 'me')}</div><span>Автівка <b>${CARS[u.id].name}</b></span></div>`
         : `<div class="unlock-item"><div class="thumb">${trackPreview(TRACKS[trackIdx(u.id)])}</div><span>Траса <b>${TRACKS[trackIdx(u.id)].emoji} ${TRACKS[trackIdx(u.id)].name}</b></span></div>`).join('')}</div></div>` : '') +
     (proNow ? `<div class="unlock"><b>⚡ Ти друкуєш дуже швидко! Відкрито нові змагання</b><div class="unlock-list">${COMPS.filter(c=>c.pro).map(c=>
-        `<div class="unlock-item"><div class="thumb">${badgeHTML(c.badge)}</div><span>Змагання <b>${c.name}</b></span></div>`).join('')}</div></div>` : '');
+        `<div class="unlock-item"><div class="thumb">${badgeHTML(c.badge)}</div><span>Змагання <b>${c.name}</b></span></div>`).join('')}</div></div>` : '') +
+    (earned.length ? `<div class="unlock"><b>🎉 ${earned.length > 1 ? 'Нові наліпки' : 'Нова наліпка'}!</b><div class="stickers">${earned.map(stickerHTML).join('')}</div></div>` : '');
+  document.getElementById('wUnlock').querySelectorAll('.sticker').forEach(s=>s.classList.add('new'));
 
   const againBtn = document.getElementById('againBtn');
   againBtn.textContent = againLabel;
@@ -2180,7 +2254,7 @@ function finish(){
   setTimeout(()=>{
     if((won || solo) && !failed){ if(loud) celebrate(bigWin); else { fanfare(); confetti(); } }
     else if(loud) sadTrombone(); else tone(330, .3, 'triangle', .07);
-    if(loud && (opened.length || proNow)) sparkle(1.6);
+    if(loud && (opened.length || proNow || earned.length)) sparkle(1.6);
     overlay.classList.add('show');
     againBtn.focus();
   }, 700);
@@ -2312,14 +2386,15 @@ function renderProfile(){
   document.getElementById('profTitle').textContent = player;
   document.getElementById('profStats').innerHTML =
     `<span>${NEURON} <b>${profile.neurons}</b></span><span>заїздів <b>${profile.races}</b></span>` +
-    `<span>перемог <b>${profile.wins}</b></span><span>змагань <b>${COMPS.filter(c=>profile.comps[c.id]).length}/${COMPS.filter(c=>compVisible(c)).length}</b></span>`;
+    `<span>перемог <b>${profile.wins}</b></span><span>змагань <b>${COMPS.filter(c=>profile.comps[c.id]).length}/${COMPS.filter(c=>compVisible(c)).length}</b></span>` +
+    `<span>наліпок <b>${Object.keys(profile.stickers).length}/${STICKERS.length}</b></span>`;
   renderSpeedChart(document.getElementById('profChart'), profile.hist || {});
   const list = document.getElementById('playerList');
   const names = Object.keys(store.players).sort((a, b)=>a===player ? -1 : b===player ? 1 : a.localeCompare(b, 'uk'));
   list.innerHTML = names.map(n=>{
     const p = store.players[n], me = n === player;
     return `<div class="pl-row${me ? ' me' : ''}">${miniCar(p)}
-      <span class="pl-name">${esc(n)}<small>${NEURON} ${p.neurons || 0}</small></span>
+      <span class="pl-name">${esc(n)}<small>${NEURON} ${p.neurons || 0} · наліпок ${Object.keys(p.stickers || {}).length} з ${STICKERS.length}</small></span>
       ${me ? '<span class="pl-you">це ти</span>' : `<button type="button" class="btn btn-primary btn-small" data-play="${esc(n)}">Грати</button>`}
       <button type="button" class="pl-del" data-del="${esc(n)}" title="Видалити гравця">✕</button>
     </div>`;
