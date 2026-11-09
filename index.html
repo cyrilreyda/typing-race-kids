@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Клавіатурні перегони Junior · Інформатика в 131-й</title>
+<title>Клавіатурні перегони · Інформатика в 131-й</title>
 <link href="fonts/fonts.css" rel="stylesheet">   <!-- локальні шрифти: гра працює без інтернету -->
 <link rel="manifest" href="manifest.webmanifest">   <!-- гру можна встановити як програму -->
 <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -147,6 +147,7 @@
      Відступ 3px — щоб не обрізалась підсвітка поточної літери */
   .text-lines{position:relative; display:flex; flex-wrap:wrap; align-items:baseline; row-gap:4px;
     max-height:calc(2 * 1.55em + 4px + 6px); overflow:hidden; padding:3px 2px; margin:-3px -2px;}
+  .lang-flag{display:inline-block; width:1.35em; height:.9em; vertical-align:-.12em; border-radius:2px; overflow:hidden; box-shadow:0 0 0 1px rgba(27,27,58,.15);}
   .emo{display:inline-block; width:1.15em; height:1.15em; vertical-align:-.2em;}   /* картинка замість емодзі (листок каштана) */
   .word{white-space:nowrap;}
   .ch{border-radius:5px; padding:0 1px; transition:background .1s ease;}
@@ -270,6 +271,9 @@
   .st-part{position:absolute; left:0; right:0; bottom:0; height:var(--fill); overflow:hidden; background:#FFE08A; border-top:2px solid #E0A800;}
   .st-part span{position:absolute; left:0; right:0; bottom:0; height:48px; display:flex; align-items:center; justify-content:center;}
   .sticker.no .st-ico .st-part, .sticker.no .st-ico .st-part span{filter:none; opacity:1;}
+  /* Зібрано все, що треба: замість сірого пунктиру — суцільне жовте коло, лінії зверху немає */
+  .sticker.no.full .st-ico{border:3px solid #FFC93C;}
+  .sticker.full .st-part{border-top:none;}
   .sticker small{font-size:11.5px; font-weight:700; color:#8A6200;}
   .unlock .stickers{display:flex; flex-wrap:wrap; justify-content:center; gap:10px 18px; margin-top:8px;}
   .unlock .sticker{width:86px;}
@@ -513,7 +517,7 @@
 
 <div class="topbar"><div class="topbar-inner">
   <a class="back-link" href="https://cyrilreyda.github.io/">← Інформатика в 131-й</a>
-  <span class="game-title">Клавіатурні перегони · Junior</span>
+  <span class="game-title">Клавіатурні перегони</span>
   <div class="neuron-counter" title="Нейрончики — твій досвід. За них відкриваються траси й автівки.">
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <line x1="16.2" y1="12" x2="20.3" y2="12" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="20.3" cy="12" r="1.2" fill="#FFC93C"/>
@@ -766,8 +770,15 @@ const FINGERS = ['лівий мізинець','лівий безіменний'
 const FINGER_VAR = ['--f-pinky','--f-ring','--f-middle','--f-index','--f-index','--f-middle','--f-ring','--f-pinky'];
 
 
-const LANGS = [ {id:'uk', html:'🇺🇦 Українська'}, {id:'en', html:'🇬🇧 English'} ];
-const LANG_FLAG = { uk:'🇺🇦', en:'🇬🇧' };
+// Прапори малюнками: емодзі прапорів Windows показує буквами (UA, GB)
+const FLAGS = {
+  uk:'<svg class="lang-flag" viewBox="0 0 3 2" role="img" aria-label="Україна"><rect width="3" height="1" fill="#0057B7"/><rect y="1" width="3" height="1" fill="#FFD700"/></svg>',
+  en:'<svg class="lang-flag" viewBox="0 0 60 40" role="img" aria-label="Велика Британія"><rect width="60" height="40" fill="#012169"/>' +
+     '<path d="M0 0L60 40M60 0L0 40" stroke="#fff" stroke-width="8"/><path d="M0 0L60 40M60 0L0 40" stroke="#C8102E" stroke-width="3"/>' +
+     '<path d="M30 0V40M0 20H60" stroke="#fff" stroke-width="12"/><path d="M30 0V40M0 20H60" stroke="#C8102E" stroke-width="7"/></svg>'
+};
+const LANGS = [ {id:'uk', html:`${FLAGS.uk} Українська`}, {id:'en', html:`${FLAGS.en} English`} ];
+const LANG_FLAG = FLAGS;
 
 /* ================= Автівки ================= */
 // Усі моделі — у viewBox 120×60, передом праворуч (у напрямку руху)
@@ -1293,7 +1304,7 @@ const stickerTip = st=>{ const n = stickerProgress(st); return `${st.how}${n ? `
 function stickerHTML(st){
   const n = stickerProgress(st);
   const part = n ? `<span class="st-part" style="--fill:${Math.round(n / st.need * 100)}%"><span>${st.ico}</span></span>` : '';
-  return `<span class="sticker${profile.stickers[st.id] ? '' : ' no'}" data-st="${st.id}" title="${stickerTip(st)}">` +
+  return `<span class="sticker${profile.stickers[st.id] ? '' : ' no'}${n >= st.need ? ' full' : ''}" data-st="${st.id}" title="${stickerTip(st)}">` +
     `<span class="st-ico"><span>${st.ico}</span>${part}</span>${st.name}${n ? `<small>${n} з ${st.need}</small>` : ''}</span>`;
 }
 function renderStickers(){
@@ -1900,7 +1911,7 @@ function startRace(opts){
 // Тренування слабких клавіш: слова з усіх текстів цієї мови, де є ці символи; без робота
 const keyName = k => k === ' ' ? 'пробіл' : k;
 function drillText(lang, keys){
-  // Літери тренуємо на звичайних словах (у Junior — без великих літер і знаків); знаки й цифри — на текстах, де вони є
+  // Літери тренуємо на звичайних словах (без ?boost — без великих літер і знаків); знаки й цифри — на текстах, де вони є
   const plain = ['home', 'top', 'words', 'sentences', ...(BOOST ? ['full'] : [])];
   const onlyLetters = keys.every(k=>/\p{L}/u.test(k));
   const lists = Object.entries(TEXTS[lang]).filter(([k])=>onlyLetters ? plain.includes(k) : BOOST || k !== 'full').flatMap(([, list])=>list);
@@ -2057,9 +2068,6 @@ function praise(n){
   setTimeout(()=>p.remove(), 2300);
   if(loud) sparkle(); else { tone(660, .1, 'sine', .03); tone(880, .14, 'sine', .03, .09); }
 }
-
-// ?boost — гра для старших: без позначки Junior
-if(BOOST){ document.querySelector('.game-title').textContent = 'Клавіатурні перегони'; document.title = 'Клавіатурні перегони · Інформатика в 131-й'; }
 
 const isCyr = c => /[а-яіїєґ]/i.test(c);
 const isLat = c => /[a-z]/i.test(c);
@@ -2588,8 +2596,8 @@ function showProfile(d){
     </div></div>
     <div class="share-sec"><h3>Рекорди швидкості, знаків/хв</h3><div class="table-scroll">
       <table class="best-table"><tr><th></th>${TRACKS.map(t=>`<th>${t.emoji} ${t.name}</th>`).join('')}</tr>
-        <tr><td>🇺🇦</td>${TRACKS.map(t=>`<td>${cell(bestKey('uk', t.id))}</td>`).join('')}</tr>
-        <tr><td>🇬🇧</td>${TRACKS.map(t=>`<td>${cell(bestKey('en', t.id))}</td>`).join('')}</tr>
+        <tr><td>${FLAGS.uk}</td>${TRACKS.map(t=>`<td>${cell(bestKey('uk', t.id))}</td>`).join('')}</tr>
+        <tr><td>${FLAGS.en}</td>${TRACKS.map(t=>`<td>${cell(bestKey('en', t.id))}</td>`).join('')}</tr>
       </table></div></div>
     <div class="share-actions"><button class="btn btn-ghost" id="ownBtn">Закрити</button></div>`;
   document.getElementById('ownBtn').addEventListener('click', leaveShared);
