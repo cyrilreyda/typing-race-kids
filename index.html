@@ -421,6 +421,13 @@
   .hint-row{display:flex; align-items:center; gap:10px; margin:12px 0 10px;}
   .hint-row .hint{flex:1; margin:0;}
   .hint-row .exit-btn{position:static; flex:none;}
+  .pause-btn:hover{border-color:var(--teal); color:var(--teal-dark);}
+  /* Пауза кнопкою ⏸: та сама картка, але продовжує лише кнопка «Грати далі» */
+  .race-panel.paused .pause-note{display:flex; cursor:default;}
+  .race-panel.paused .pause-card{animation:none;}   /* у кнопку, що не пульсує, легше влучити */
+  .race-panel.paused .hint-row .exit-btn{position:relative; z-index:6;}   /* ⏸ і ✕ працюють і під час паузи */
+  .race-panel.paused .pause-text, .race-panel:not(.paused) .pause-go{display:none;}
+  .pause-go{margin-top:12px;}
   /* Довідка для вчителя: які налаштування з адреси діють */
   .teacher-note{margin-top:10px; text-align:center; font-size:12.5px; color:var(--ink-soft); opacity:.8;}
   .teacher-note:empty{display:none;}
@@ -599,6 +606,7 @@
     <div class="text-box" id="textBox"><div class="text-lines" id="textLines"></div></div>
     <div class="hint-row">
       <div class="hint" id="hint"></div>
+      <button class="exit-btn pause-btn" id="pauseBtn" type="button" title="Пауза" aria-label="Пауза">⏸</button>
       <button class="exit-btn" id="exitBtn" type="button" title="Вийти із заїзду (Esc)" aria-label="Вийти із заїзду">✕</button>
     </div>
     <div class="kb-wrap">
@@ -607,7 +615,7 @@
       <div class="kb" id="kb" aria-hidden="true"></div>
     </div>
     <div class="teacher-note" id="teacherNote"></div>
-    <div class="pause-note"><div class="pause-card"><div class="pause-ico">⏸</div><div class="pause-title">Пауза</div><div class="pause-text">👆 Клацни тут, щоб продовжити</div></div></div>
+    <div class="pause-note"><div class="pause-card"><div class="pause-ico">⏸</div><div class="pause-title">Пауза</div><div class="pause-text">👆 Клацни тут, щоб продовжити</div><button class="btn btn-primary pause-go" id="resumeBtn" type="button" title="Грати далі (Enter)">▶ Грати далі</button></div></div>
     <input class="typer" id="typer" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Поле для друку">
   </section>
 
@@ -1878,12 +1886,13 @@ function startRace(opts){
     pos:0, errors:0, missed:false, streak:0, topStreak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
     botCpm:opts.cpm, botChars:0, seed:Math.random()*10, lastFrame:0,
     botDone:false, assist:!opts.day && (opts.paced || !BOOST && !opts.comp?.pro), assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
-    hold:{ focus:false, alert:false }   // пауза: сторінка без фокусу або підказка про мову чи Caps Lock
+    hold:{ focus:false, alert:false, pause:false }   // пауза: сторінка без фокусу, підказка про мову чи Caps Lock або кнопка ⏸
   };
   setupEl.hidden = true;
   shareView.hidden = true;
   startBar.hidden = true;
   raceEl.hidden = false;
+  raceEl.classList.remove('paused');
   applyTrack(opts.track);
   buildKeyboard();
   drawCars(opts.model);
@@ -1973,7 +1982,7 @@ function loop(now){
   const dt = Math.min(0.25, raw / 1000);
   race.lastFrame = now;
   rollWheels();
-  if(race.phase === 'race' && (race.hold.focus || race.hold.alert)){   // пауза: годинник і робот стоять
+  if(race.phase === 'race' && (race.hold.focus || race.hold.alert || race.hold.pause)){   // пауза: годинник і робот стоять
     race.startT += raw;
     if(race.lastKeyT) race.lastKeyT += raw;
     carBot.classList.remove('moving'); carMe.classList.remove('moving');
@@ -2073,7 +2082,7 @@ const isCyr = c => /[а-яіїєґ]/i.test(c);
 const isLat = c => /[a-z]/i.test(c);
 
 function handleChar(ch){
-  if(!race || race.phase !== 'race') return;
+  if(!race || race.phase !== 'race' || race.hold.pause) return;
   const need = race.text[race.pos];
   if(ch === ' ') ch = ' ';
   if(/[’‘ʼ]/.test(ch) && need === "'") ch = "'";          // планшети ставлять «розумний» апостроф і лапки
@@ -2138,6 +2147,15 @@ typer.addEventListener('blur', ()=>setTimeout(()=>{
 }, 0));
 typer.addEventListener('focus', ()=>setLost(false));
 addEventListener('blur', ()=>{ if(raceLive()) setLost(true); });
+// Пауза кнопкою ⏸: годинник і робот стоять, літери не зараховуються; продовжити — «Грати далі» або Enter
+function setPause(on){
+  if(!race || race.phase !== 'race') return;
+  race.hold.pause = on;
+  raceEl.classList.toggle('paused', on);
+}
+document.getElementById('pauseBtn').addEventListener('click', ()=>setPause(!(race && race.hold.pause)));
+document.getElementById('resumeBtn').addEventListener('click', ()=>setPause(false));
+typer.addEventListener('keydown', e=>{ if(e.key === 'Enter' && race && race.hold.pause){ e.preventDefault(); setPause(false); } });
 addEventListener('focus', ()=>{ if(raceLive() && !isTouch) refocus(); });
 // Натискання, коли фокус не в полі: повертаємо його, і літера потрапить у поле
 document.addEventListener('keydown', e=>{
@@ -2284,7 +2302,7 @@ function finish(){
 
 function toSetup(){
   race = null;
-  raceEl.classList.remove('unfocused');
+  raceEl.classList.remove('unfocused', 'paused');
   alertEl.hidden = true;
   cancelAnimationFrame(rafId);
   overlay.classList.remove('show');
