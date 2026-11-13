@@ -690,8 +690,13 @@
 
 <script>
 // ?boost — нормативи середньої школи (5–7 класи) з оригінальної гри: швидкості роботів, точність, медалі,
-// повні речення, без фори й пригальмовування робота, усі змагання відкриті. Прогрес — окремий
-const BOOST = new URLSearchParams(location.search).has('boost');
+// повні речення, без фори й пригальмовування робота, усі змагання відкриті. Прогрес — окремий.
+// У встановленій грі (PWA) адреси не видно, тож вчитель перемикає режим ще й Ctrl+Alt+B — це запам'ятовується на пристрої.
+// ?boost в адресі діє лише на цей запуск: один комп'ютер може відкривати гру різним класам різними посиланнями
+const BOOST_KEY = 'typing-race-kids-boost';
+let boostSaved = false;
+try{ boostSaved = localStorage.getItem(BOOST_KEY) === 'on'; }catch(e){}
+const BOOST = boostSaved || new URLSearchParams(location.search).has('boost');
 /* ================= Тексти ================= */
 // Слова лише з літер основного ряду (ФІВА ПР ОЛДЖЄ / ASDF G H JKL)
 const TEXTS = {
@@ -2658,6 +2663,27 @@ function route(){
   }
 }
 document.addEventListener('keydown', e=>{ if(e.ctrlKey && e.altKey && e.code === 'KeyZ'){ e.preventDefault(); setLoud(!loud); } });
+// Ctrl+Alt+B: нормативи 5–7 класів увімкнути або вимкнути. Прогрес у режимах окремий, тож сторінка перезавантажується.
+// preventDefault: у полі введення комбінація не надрукує символ і не зарахується як помилка.
+// ?boost з адреси прибираємо, інакше він знову ввімкне режим
+document.addEventListener('keydown', e=>{ if(e.ctrlKey && e.altKey && e.code === 'KeyB'){ e.preventDefault(); toggleBoost(); } });
+function toggleBoost(){
+  try{
+    localStorage.setItem(BOOST_KEY, BOOST ? 'off' : 'on');
+    sessionStorage.setItem(BOOST_KEY + '-toast', '1');
+  }catch(e){ showToast('Не вдалося зберегти налаштування'); return; }
+  const q = new URLSearchParams(location.search);
+  q.delete('boost');
+  const rest = q.toString().replace(/=(?=&|$)/g, '');
+  history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+  location.reload();
+}
+try{
+  if(sessionStorage.getItem(BOOST_KEY + '-toast')){
+    sessionStorage.removeItem(BOOST_KEY + '-toast');
+    showToast(BOOST ? 'Нормативи 5–7 класів' : 'Звичайні нормативи');
+  }
+}catch(e){}
 // Офлайн: обробник sw.js зберігає гру в браузері, щоб вона відкривалась без інтернету.
 // Працює лише на сайті (http/https); з папки (file://) гра й так відкривається без мережі
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
