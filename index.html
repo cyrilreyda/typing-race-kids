@@ -11,6 +11,7 @@
 <meta name="theme-color" content="#16A3A0">
 <script src="/lock.js"></script>   <!-- замок «лише на уроці» з каталогу; у грі з архіву його немає, і вона відкривається як завжди -->
 <script src="/account.js"></script>   <!-- спільний акаунт учня з каталогу; без нього гра питає ім'я, як раніше -->
+<script src="/duel.js"></script>   <!-- дуель з однокласником; без акаунта її немає -->
 <style>
   :root{
     --bg:#F6F5FB; --ink:#1B1B3A; --ink-soft:#514F72; --surface:#FFFFFF; --line:#E4E1F5;
@@ -412,7 +413,7 @@
   .car .tag .badge-ico{width:16px; height:16px;}
   .car-extras{display:flex; flex-wrap:wrap; align-items:center; gap:12px 28px; margin-top:12px;}
   .car-extras .swatches{margin-top:0;}
-  .start-over{position:absolute; inset:0; z-index:3; display:flex; align-items:center; justify-content:center; pointer-events:none;}
+  .start-over{position:absolute; inset:0; z-index:3; display:flex; align-items:center; justify-content:center; gap:14px; pointer-events:none;}
   .start-over .btn{pointer-events:auto; box-shadow:0 4px 0 var(--teal-dark), 0 10px 24px rgba(27,27,58,.3);}
   .race-info{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:14px; color:var(--ink-soft); margin:-4px 0 10px;}
   .race-info:empty{display:none;}
@@ -549,7 +550,7 @@
 
 <main class="container">
   <section class="track" id="track" aria-label="Траса">
-    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🚦 На старт!</button></div>
+    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🚦 На старт!</button><button class="btn btn-ghost btn-big" id="duelBtn" hidden>⚔️ Дуель</button></div>
     <span class="track-name" id="trackName"></span>
     <div class="scene scene-top" id="sceneTop"></div>
     <div class="road">
@@ -1561,6 +1562,7 @@ function renderSetup(){
 /* ================= Вкладки й змагання ================= */
 const startBar = document.getElementById('startBar');
 const startBtn = document.getElementById('startBtn');
+const duelBtn = document.getElementById('duelBtn');
 const activeTab = () => document.querySelector('.tab.on')?.dataset.tab || 'paneFree';
 function showTab(id){
   if(id === 'paneComp' && !compById(selComp)) id = 'paneComps';
@@ -1571,6 +1573,7 @@ function showTab(id){
   if(id === 'paneComp'){ renderCompPane(); previewComp(); startBar.hidden = false; }
   else if(id === 'paneComps'){ renderComps(); startBar.hidden = true; }
   else { applyTrack(settings.track); drawCars(); setP(carMe, 0); setP(carBot, 0); startBar.hidden = false; }
+  duelBtn.hidden = !(id === 'paneFree' && window.Duel?.available());   // дуель — лише у вільному заїзді
 }
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{ if(!t.classList.contains('on')) showTab(t.dataset.tab); }));
 
@@ -1906,7 +1909,7 @@ function startRace(opts){
   const pace = opts.drill ? 0 : paceOf(opts.lang, level, true);   // звична швидкість учня на цьому тексті
   race = {
     text: opts.text || makeText(opts.lang, level, pace), pace, weak:{}, drill:opts.drill || null, track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
-    pos:0, errors:0, missed:false, streak:0, topStreak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
+    pos:0, errors:0, missed:false, streak:0, topStreak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot, duel:opts.duel || null,
     botCpm:opts.cpm, botChars:0, seed:Math.random()*10, lastFrame:0,
     botDone:false, assist:!opts.day && (opts.paced || !BOOST && !opts.comp?.pro), assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
     hold:{ focus:false, alert:false, pause:false }   // пауза: сторінка без фокусу, підказка про мову чи Caps Lock або кнопка ⏸
@@ -1919,6 +1922,7 @@ function startRace(opts){
   applyTrack(opts.track);
   buildKeyboard();
   drawCars(opts.model);
+  if(race.duel) drawOpp(race.duel.opp, opts.model);
   setP(carMe, 0); setP(carBot, 0);
   carMe._x = carBot._x = null;   // колеса починають котитися з першого кадру заїзду
   carBot.hidden = race.noBot;
@@ -2005,7 +2009,7 @@ function loop(now){
   const dt = Math.min(0.25, raw / 1000);
   race.lastFrame = now;
   rollWheels();
-  if(race.phase === 'race' && (race.hold.focus || race.hold.alert || race.hold.pause)){   // пауза: годинник і робот стоять
+  if(race.phase === 'race' && !race.duel && (race.hold.focus || race.hold.alert || race.hold.pause)){   // пауза: годинник і робот стоять (у дуелі суперник не чекає)
     race.startT += raw;
     if(race.lastKeyT) race.lastKeyT += raw;
     carBot.classList.remove('moving'); carMe.classList.remove('moving');
@@ -2013,7 +2017,7 @@ function loop(now){
     return;
   }
   const total = race.text.length;
-  if(!race.noBot && race.botChars < total){
+  if(!race.noBot && !race.duel && race.botChars < total){   // у дуелі машинку суперника рухає його прогрес (onOpp)
     const t = (now - race.startT) / 1000;
     const k = 1 + 0.14*Math.sin(t*0.9 + race.seed) + 0.06*Math.sin(t*2.7 + race.seed*2);   // робот то пришвидшується, то гальмує
     if(race.assist){
@@ -2120,6 +2124,7 @@ function handleChar(ch){
     race.pos++;
     race.lastKeyT = performance.now();
     setP(carMe, race.pos / race.text.length);
+    if(race.duel) window.Duel.pos(race.pos);
     if(race.pos === race.text.length) return finish();
     if(++race.streak % STREAK_STEP === 0) praise(race.streak);
     race.topStreak = Math.max(race.topStreak, race.streak);
@@ -2190,6 +2195,7 @@ let againAction = startFree, exitAction = toSetup;
 function finish(){
   const now = performance.now();
   race.phase = 'done';
+  if(race.duel) window.Duel.finish();
   carMe.classList.remove('moving');
   showNextKey(undefined);
   const len = race.text.length;
@@ -2269,7 +2275,7 @@ function finish(){
   profile.neurons += gain;
   const opened = UNLOCKS.filter(u=>u.at > before && u.at <= profile.neurons);
   // Наліпки
-  const run = { won, errors:race.errors, topStreak:race.topStreak, newRecord:record && prevBest > 0, drill:!!race.drill };
+  const run = { won:won && !race.duel, errors:race.errors, topStreak:race.topStreak, newRecord:record && prevBest > 0, drill:!!race.drill };
   const earned = STICKERS.filter(st=>!profile.stickers[st.id] && (st.test ? st.test(run) : st.count(profile) >= st.need));
   earned.forEach(st=>profile.stickers[st.id] = today());
   saveStore();
@@ -2277,8 +2283,8 @@ function finish(){
 
   // Значок і заголовок: медалі 🥇🥈🥉 лишаємо лише для змагань, тут — без них
   const failed = c && !(won && acc >= c.minAcc);
-  document.getElementById('wBig').textContent = solo ? '🏁' : !won ? '🤖' : failed ? '🎯' : '🏆';
-  document.getElementById('winTitle').textContent = solo ? 'Фініш!' : !won ? 'Робот приїхав першим' : failed ? 'Етап не зараховано' : 'Перемога!';
+  document.getElementById('wBig').textContent = solo ? '🏁' : !won ? (race.duel ? '🏁' : '🤖') : failed ? '🎯' : '🏆';
+  document.getElementById('winTitle').textContent = solo ? 'Фініш!' : !won ? (race.duel ? `${race.duel.opp.label} — перший на фініші` : 'Робот приїхав першим') : failed ? 'Етап не зараховано' : 'Перемога!';
   document.getElementById('wSub').textContent = won || solo ? '' : 'Але й ти на фініші — так тримати!';
   document.getElementById('wStars').innerHTML = [1,2,3].map(i=>`<span class="${i<=stars?'':'dim'}">⭐</span>`).join('');
   document.getElementById('wSpeed').textContent = speed;
@@ -2303,6 +2309,7 @@ function finish(){
     (earned.length ? `<div class="unlock"><b>🎉 ${earned.length > 1 ? 'Нові наліпки' : 'Нова наліпка'}!</b><div class="stickers">${earned.map(stickerHTML).join('')}</div></div>` : '');
   document.getElementById('wUnlock').querySelectorAll('.sticker').forEach(s=>s.classList.add('new'));
 
+  if(race.duel){ againAction = ()=>{ toSetup(); openDuel(); }; againLabel = '⚔️ Ще дуель'; }
   const againBtn = document.getElementById('againBtn');
   againBtn.textContent = againLabel;
   // Друга кнопка: посеред змагання — до його результатів, після вільного заїзду — у гараж,
@@ -2324,6 +2331,7 @@ function finish(){
 }
 
 function toSetup(){
+  if(race?.duel) window.Duel.leave();
   race = null;
   raceEl.classList.remove('unfocused', 'paused');
   alertEl.hidden = true;
@@ -2358,6 +2366,42 @@ function confetti(n = 70){
 
 
 startBtn.addEventListener('click', ()=>activeTab() === 'paneComp' ? startComp(selComp) : startFree());
+
+/* ================= Дуель з однокласником (/duel.js каталогу) ================= */
+// Той, хто кличе, задає трасу, мову й текст; суперник їде тим самим. Машинка робота стає машинкою суперника
+function openDuel(){
+  window.Duel.open({
+    make: ()=>{
+      const level = TRACK_LEVEL[settings.track], t = TRACKS[trackIdx(settings.track)];
+      return { text:makeText(settings.lang, level), lang:settings.lang, track:settings.track, level, model:settings.model,
+               color:carColor(settings.model), badge:settings.badge, desc:`${t.emoji} ${t.name} · ${settings.lang === 'en' ? 'англійська' : 'українська'}` };
+    },
+    start: startDuel,
+    solo: startFree,   // немає інтернету — їдемо з роботом
+  });
+}
+function startDuel(d){
+  startRace({ track:d.track, lang:d.lang, level:d.level, text:d.text, model:settings.model, cpm:0, duel:d });
+  d.onOpp = o=>{
+    if(!race || race.duel !== d) return;
+    if(o.pos >= 0) race.botChars = Math.min(race.text.length, o.pos);
+    if(o.fin){
+      race.botChars = race.text.length;
+      if(race.phase !== 'done' && !race.botDone){ race.botDone = true; showTip(`${d.opp.label} уже на фініші. Допиши текст до кінця!`); }
+    } else if(o.left && !race.oppLeft){
+      race.oppLeft = true;
+      if(race.phase !== 'done') showTip(`${d.opp.label} вийшов з дуелі. Доїдь до фінішу!`);
+    }
+  };
+}
+// Машинка суперника на другій смузі: його автівка, колір і табличка з ніком
+function drawOpp(o, myModel){
+  const model = CARS[o.model] ? o.model : 'beetle';
+  const mine = carColor(myModel);
+  const color = !o.color || o.color === mine ? (mine === BOT_COLOR ? '#16A3A0' : BOT_COLOR) : o.color;
+  carBot.innerHTML = DUST + carSVG(model, color, 'bot') + nameTag(o.label, o.badge || '');
+}
+duelBtn.addEventListener('click', openDuel);
 document.getElementById('againBtn').addEventListener('click', ()=>againAction());
 document.getElementById('toSetupBtn').addEventListener('click', ()=>exitAction());
 document.getElementById('exitBtn').addEventListener('click', toSetup);
