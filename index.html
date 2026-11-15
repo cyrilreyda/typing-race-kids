@@ -552,7 +552,7 @@
 
 <main class="container">
   <section class="track" id="track" aria-label="Траса">
-    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🚦 На старт!</button><button class="btn btn-ghost btn-big" id="duelBtn" hidden>🧑‍🤝‍🧑 Разом</button><button class="btn btn-ghost btn-big" id="classBtn" hidden>🏫 Клас</button></div>
+    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🚦 На старт!</button><button class="btn btn-ghost btn-big" id="duelBtn" hidden>🧑‍🤝‍🧑 Разом</button><button class="btn btn-ghost btn-big" id="classBtn" hidden>Клас</button></div>
     <span class="track-name" id="trackName"></span>
     <div class="scene scene-top" id="sceneTop"></div>
     <div class="road">
@@ -1568,6 +1568,7 @@ const startBar = document.getElementById('startBar');
 const startBtn = document.getElementById('startBtn');
 const duelBtn = document.getElementById('duelBtn');
 const classBtn = document.getElementById('classBtn');
+if(window.Klass) classBtn.innerHTML = `${window.Klass.icon} Клас`;   // значок «троє дітей» — з classrace.js
 const activeTab = () => document.querySelector('.tab.on')?.dataset.tab || 'paneFree';
 function showTab(id){
   if(id === 'paneComp' && !compById(selComp)) id = 'paneComps';
@@ -2334,10 +2335,11 @@ function finish(){
     document.getElementById('wComp').innerHTML = '<div class="comp-box step" id="klassTable"></div>';
     renderKlassTable();
     againAction = ()=>{ race.klass = null; toSetup(); window.Klass.next(); };
-    againLabel = '🏫 Наступний заїзд';
+    againLabel = 'Наступний заїзд';
   }
   const againBtn = document.getElementById('againBtn');
   againBtn.textContent = againLabel;
+  if(race.klass) againBtn.innerHTML = `${window.Klass.icon} ${againLabel}`;
   // Друга кнопка: посеред змагання — до його результатів, після вільного заїзду — у гараж,
   // після завершеного змагання її немає (лишається «До змагань»)
   const midComp = c && profile.runs[c.id];
@@ -2507,7 +2509,7 @@ function drawField(now, dt, total){
   });
   if(race.phase === 'race' && now - (race.infoAt || 0) > 250){
     race.infoAt = now;
-    document.getElementById('raceInfo').textContent = race.n > 1 ? `🏫 Твоє місце: ${klassPlace(false)} з ${race.n}` : '🏫 Перегони класом';
+    document.getElementById('raceInfo').innerHTML = `${window.Klass.icon} ` + (race.n > 1 ? `Твоє місце: ${klassPlace(false)} з ${race.n}` : 'Перегони класом');
   }
 }
 // Таблиця місць на екрані результату: перші п'ять і сам учень
@@ -2517,7 +2519,7 @@ function renderKlassTable(){
   const ranked = race.klassList.slice().sort((a, b)=>(a.fin && b.fin) ? a.fin - b.fin : a.fin ? -1 : b.fin ? 1 : (b.pos || 0) - (a.pos || 0));
   const me = race.klass.me;
   const rows = ranked.map((p, i)=>({ p, i })).filter(({ p, i })=>i < 5 || p.id === me);
-  el.innerHTML = `<b>🏫 Місця в класі</b>` + rows.map(({ p, i })=>`<div class="klass-row${p.id === me ? ' me' : ''}">${i + 1}. ${esc(p.label)}${p.fin ? ' 🏁' : ' …'}</div>`).join('');
+  el.innerHTML = `<b>${window.Klass.icon} Місця в класі</b>` + rows.map(({ p, i })=>`<div class="klass-row${p.id === me ? ' me' : ''}">${i + 1}. ${esc(p.label)}${p.fin ? ' 🏁' : ' …'}</div>`).join('');
 }
 classBtn.addEventListener('click', openClass);
 document.getElementById('againBtn').addEventListener('click', ()=>againAction());
