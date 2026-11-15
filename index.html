@@ -1903,6 +1903,7 @@ function scrollLines(){
 
 // opts: { track, lang, cpm, model, comp, level? }
 function startRace(opts){
+  if(race?.duel && race.duel !== opts.duel) window.Duel.leave();   // з екрана результату «Разом» одразу в інший заїзд («Потренувати»)
   overlay.classList.remove('show');
   cancelAnimationFrame(rafId);
   const level = opts.level || TRACK_LEVEL[opts.track];
