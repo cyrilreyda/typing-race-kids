@@ -2374,7 +2374,7 @@ function openDuel(){
     make: ()=>{
       const level = TRACK_LEVEL[settings.track], t = TRACKS[trackIdx(settings.track)];
       return { text:makeText(settings.lang, level), lang:settings.lang, track:settings.track, level, model:settings.model,
-               color:carColor(settings.model), badge:settings.badge, desc:`${t.emoji} ${t.name} · ${settings.lang === 'en' ? 'англійська' : 'українська'}` };
+               color:carColor(settings.model), badge:settings.badge, desc:`Траса «${t.name}» · ${settings.lang === 'en' ? 'англійська' : 'українська'}` };   // t.emoji тут — малюнок SVG, у запрошення не йде
     },
     start: startDuel,
     solo: startFree,   // немає інтернету — їдемо з роботом
