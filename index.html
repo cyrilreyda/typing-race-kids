@@ -2034,8 +2034,12 @@ function loop(now){
       showTip('Робот уже на фініші. Допиши текст до кінця!');
     }
   }
+  if(race.duel && race.oppAt){   // «Разом»: між оновленнями їдемо зі швидкістю суперника, але не далі ніж на 0,8 знака від його позиції
+    const ahead = race.oppPos >= total ? total : Math.min(race.oppPos + 0.8, race.oppPos + (race.oppRate || 0) * (now - race.oppAt) / 1000);
+    race.botChars = Math.min(total, Math.max(race.botChars, race.botChars + (ahead - race.botChars) * Math.min(1, dt * 8)));
+  }
   setP(carBot, race.botChars / total);
-  carBot.classList.toggle('moving', race.botChars < total);
+  carBot.classList.toggle('moving', race.duel ? race.botChars < total && now - (race.oppAt || 0) < 1500 : race.botChars < total);
   carMe.classList.toggle('moving', race.phase==='race' && now - race.lastKeyT < 1500);   // 1,5 с — щоб пил не блимав між літерами
   if(race.phase === 'race') updateStats(now);
   if(race.phase === 'race' || (!race.noBot && race.botChars < total)) rafId = requestAnimationFrame(loop);
@@ -2384,9 +2388,17 @@ function startDuel(d){
   startRace({ track:d.track, lang:d.lang, level:d.level, text:d.text, model:settings.model, cpm:0, duel:d });
   d.onOpp = o=>{
     if(!race || race.duel !== d) return;
-    if(o.pos >= 0) race.botChars = Math.min(race.text.length, o.pos);
+    // Прогрес приходить уривками (раз на 0,2 с і з затримкою мережі), тож машинку веде loop: вона їде зі швидкістю,
+    // з якою друкує суперник (oppRate, знаків/с), і плавно підтягується до його справжньої позиції (oppPos)
+    if(o.pos > (race.oppPos || 0)){
+      const t = performance.now();
+      if(race.oppAt){ const inst = (o.pos - race.oppPos) / Math.max(0.05, (t - race.oppAt) / 1000); race.oppRate = race.oppRate ? race.oppRate * 0.6 + inst * 0.4 : inst; }
+      race.oppPos = Math.min(race.text.length, o.pos);
+      race.oppAt = t;
+    }
     if(o.fin){
-      race.botChars = race.text.length;
+      race.oppPos = race.text.length;
+      race.oppAt ||= performance.now();
       if(race.phase !== 'done' && !race.botDone){ race.botDone = true; showTip(`${d.opp.label} уже на фініші. Допиши текст до кінця!`); }
     } else if(o.left && !race.oppLeft){
       race.oppLeft = true;
