@@ -12,6 +12,7 @@
 <script src="/lock.js"></script>   <!-- замок «лише на уроці» з каталогу; у грі з архіву його немає, і вона відкривається як завжди -->
 <script src="/account.js"></script>   <!-- спільний акаунт учня з каталогу; без нього гра питає ім'я, як раніше -->
 <script src="/duel.js"></script>   <!-- «Разом»: перегони з однокласником; без акаунта їх немає -->
+<script src="/classrace.js"></script>   <!-- «Клас»: перегони всім класом, запускає вчитель на /teacher/race/ -->
 <style>
   :root{
     --bg:#F6F5FB; --ink:#1B1B3A; --ink-soft:#514F72; --surface:#FFFFFF; --line:#E4E1F5;
@@ -414,6 +415,7 @@
   .car-extras{display:flex; flex-wrap:wrap; align-items:center; gap:12px 28px; margin-top:12px;}
   .car-extras .swatches{margin-top:0;}
   .start-over{position:absolute; inset:0; z-index:3; display:flex; align-items:center; justify-content:center; gap:14px; pointer-events:none;}
+  .klass-row{text-align:left; padding:2px 0;} .klass-row.me{font-weight:800; color:var(--teal-dark);}
   .start-over .btn{pointer-events:auto; box-shadow:0 4px 0 var(--teal-dark), 0 10px 24px rgba(27,27,58,.3);}
   .race-info{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:14px; color:var(--ink-soft); margin:-4px 0 10px;}
   .race-info:empty{display:none;}
@@ -550,7 +552,7 @@
 
 <main class="container">
   <section class="track" id="track" aria-label="Траса">
-    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🚦 На старт!</button><button class="btn btn-ghost btn-big" id="duelBtn" hidden>🧑‍🤝‍🧑 Разом</button></div>
+    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🚦 На старт!</button><button class="btn btn-ghost btn-big" id="duelBtn" hidden>🧑‍🤝‍🧑 Разом</button><button class="btn btn-ghost btn-big" id="classBtn" hidden>🏫 Клас</button></div>
     <span class="track-name" id="trackName"></span>
     <div class="scene scene-top" id="sceneTop"></div>
     <div class="road">
@@ -559,6 +561,7 @@
       <span class="flag">🏁</span>
       <div class="lane"><div class="car me" id="carMe"></div></div>
       <div class="lane"><div class="car bot" id="carBot"></div></div>
+      <div class="lane" id="lane3" hidden><div class="car bot" id="carBot2"></div></div>   <!-- «Клас»: другий найближчий суперник -->
     </div>
     <div class="scene scene-bottom" id="sceneBottom"></div>
     <div class="fx" id="fx"></div>
@@ -1423,6 +1426,7 @@ function celebrate(big){
 const trackEl = document.getElementById('track');
 const carMe = document.getElementById('carMe');
 const carBot = document.getElementById('carBot');
+const carBot2 = document.getElementById('carBot2'), lane3 = document.getElementById('lane3');
 const fxEl = document.getElementById('fx');
 
 function applyTrack(id){
@@ -1469,7 +1473,7 @@ function drawCars(model = settings.model){
 // Колеса котяться без проковзування: кут повороту = пройдена на екрані відстань / радіус колеса.
 // Тож швидкість обертання відповідає швидкості автівки, а коли автівка стоїть — стоять і колеса
 function rollWheels(){
-  for(const car of [carMe, carBot]){
+  for(const car of [carMe, carBot, carBot2]){
     const x = car.getBoundingClientRect().left;
     if(car._x != null && x !== car._x){
       const r = car.offsetWidth * 10 / 120;   // радіус колеса в пікселях (у SVG — 10 з ширини 120)
@@ -1491,7 +1495,7 @@ function fitTrack(){
   const [car, lane, top, bottom] = FIT_VARS.map(v=>parseFloat(getComputedStyle(trackEl).getPropertyValue(v)));
   let over = raceEl.offsetTop + raceEl.offsetHeight + 12 - innerHeight;
   if(over <= 0) return;
-  const scenes = top + bottom, lanes = 2 * lane;
+  const scenes = top + bottom, lanes = trackEl.querySelectorAll('.lane:not([hidden])').length * lane;   // у «Класі» смуг три
   const cut = Math.min(over, scenes * .7);
   const ks = 1 - cut / scenes, kl = Math.max(.55, 1 - (over - cut) / lanes);
   trackEl.style.setProperty('--scene-top', top * ks + 'px');
@@ -1563,6 +1567,7 @@ function renderSetup(){
 const startBar = document.getElementById('startBar');
 const startBtn = document.getElementById('startBtn');
 const duelBtn = document.getElementById('duelBtn');
+const classBtn = document.getElementById('classBtn');
 const activeTab = () => document.querySelector('.tab.on')?.dataset.tab || 'paneFree';
 function showTab(id){
   if(id === 'paneComp' && !compById(selComp)) id = 'paneComps';
@@ -1574,6 +1579,7 @@ function showTab(id){
   else if(id === 'paneComps'){ renderComps(); startBar.hidden = true; }
   else { applyTrack(settings.track); drawCars(); setP(carMe, 0); setP(carBot, 0); startBar.hidden = false; }
   duelBtn.hidden = !(id === 'paneFree' && window.Duel?.available());   // «Разом» — лише у вільному заїзді
+  classBtn.hidden = !(id === 'paneFree' && window.Klass?.available());
 }
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{ if(!t.classList.contains('on')) showTab(t.dataset.tab); }));
 
@@ -1903,14 +1909,15 @@ function scrollLines(){
 
 // opts: { track, lang, cpm, model, comp, level? }
 function startRace(opts){
-  if(race?.duel && race.duel !== opts.duel) window.Duel.leave();   // з екрана результату «Разом» одразу в інший заїзд («Потренувати»)
+  if(race?.duel && race.duel !== opts.duel) window.Duel.leave();
+  if(race?.klass && race.klass !== opts.klass) window.Klass.leave();   // з екрана результату «Разом» одразу в інший заїзд («Потренувати»)
   overlay.classList.remove('show');
   cancelAnimationFrame(rafId);
   const level = opts.level || TRACK_LEVEL[opts.track];
   const pace = opts.drill ? 0 : paceOf(opts.lang, level, true);   // звична швидкість учня на цьому тексті
   race = {
     text: opts.text || makeText(opts.lang, level, pace), pace, weak:{}, drill:opts.drill || null, track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
-    pos:0, errors:0, missed:false, streak:0, topStreak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot, duel:opts.duel || null,
+    pos:0, errors:0, missed:false, streak:0, topStreak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot, duel:opts.duel || null, klass:opts.klass || null, field:{}, near:[null, null],
     botCpm:opts.cpm, botChars:0, seed:Math.random()*10, lastFrame:0,
     botDone:false, assist:!opts.day && (opts.paced || !BOOST && !opts.comp?.pro), assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
     hold:{ focus:false, alert:false, pause:false }   // пауза: сторінка без фокусу, підказка про мову чи Caps Lock або кнопка ⏸
@@ -1924,6 +1931,8 @@ function startRace(opts){
   buildKeyboard();
   drawCars(opts.model);
   if(race.duel) drawOpp(race.duel.opp, opts.model);
+  lane3.hidden = !race.klass;
+  if(race.klass){ carBot.innerHTML = carBot2.innerHTML = ''; setP(carBot2, 0); }   // суперників намалює drawField
   setP(carMe, 0); setP(carBot, 0);
   carMe._x = carBot._x = null;   // колеса починають котитися з першого кадру заїзду
   carBot.hidden = race.noBot;
@@ -2010,7 +2019,7 @@ function loop(now){
   const dt = Math.min(0.25, raw / 1000);
   race.lastFrame = now;
   rollWheels();
-  if(race.phase === 'race' && !race.duel && (race.hold.focus || race.hold.alert || race.hold.pause)){   // пауза: годинник і робот стоять (у дуелі суперник не чекає)
+  if(race.phase === 'race' && !race.duel && !race.klass && (race.hold.focus || race.hold.alert || race.hold.pause)){   // пауза: годинник і робот стоять (у дуелі суперник не чекає)
     race.startT += raw;
     if(race.lastKeyT) race.lastKeyT += raw;
     carBot.classList.remove('moving'); carMe.classList.remove('moving');
@@ -2018,7 +2027,7 @@ function loop(now){
     return;
   }
   const total = race.text.length;
-  if(!race.noBot && !race.duel && race.botChars < total){   // у дуелі машинку суперника рухає його прогрес (onOpp)
+  if(!race.noBot && !race.duel && !race.klass && race.botChars < total){   // у дуелі машинку суперника рухає його прогрес (onOpp)
     const t = (now - race.startT) / 1000;
     const k = 1 + 0.14*Math.sin(t*0.9 + race.seed) + 0.06*Math.sin(t*2.7 + race.seed*2);   // робот то пришвидшується, то гальмує
     if(race.assist){
@@ -2039,11 +2048,14 @@ function loop(now){
     const ahead = race.oppPos >= total ? total : Math.min(race.oppPos + 0.8, race.oppPos + (race.oppRate || 0) * (now - race.oppAt) / 1000);
     race.botChars = Math.min(total, Math.max(race.botChars, race.botChars + (ahead - race.botChars) * Math.min(1, dt * 8)));
   }
+  if(race.klass) drawField(now, dt, total);
+  else {
   setP(carBot, race.botChars / total);
   carBot.classList.toggle('moving', race.duel ? race.botChars < total && now - (race.oppAt || 0) < 1500 : race.botChars < total);
+  }
   carMe.classList.toggle('moving', race.phase==='race' && now - race.lastKeyT < 1500);   // 1,5 с — щоб пил не блимав між літерами
   if(race.phase === 'race') updateStats(now);
-  if(race.phase === 'race' || (!race.noBot && race.botChars < total)) rafId = requestAnimationFrame(loop);
+  if(race.phase === 'race' || race.klass || (!race.noBot && race.botChars < total)) rafId = requestAnimationFrame(loop);
 }
 
 function fmtTime(sec){ sec = Math.floor(sec); return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`; }
@@ -2130,6 +2142,7 @@ function handleChar(ch){
     race.lastKeyT = performance.now();
     setP(carMe, race.pos / race.text.length);
     if(race.duel) window.Duel.pos(race.pos);
+    if(race.klass) window.Klass.pos(race.pos);
     if(race.pos === race.text.length) return finish();
     if(++race.streak % STREAK_STEP === 0) praise(race.streak);
     race.topStreak = Math.max(race.topStreak, race.streak);
@@ -2201,6 +2214,7 @@ function finish(){
   const now = performance.now();
   race.phase = 'done';
   if(race.duel) window.Duel.finish();
+  if(race.klass){ window.Klass.finish(); race.place = klassPlace(true); }
   carMe.classList.remove('moving');
   showNextKey(undefined);
   const len = race.text.length;
@@ -2280,7 +2294,7 @@ function finish(){
   profile.neurons += gain;
   const opened = UNLOCKS.filter(u=>u.at > before && u.at <= profile.neurons);
   // Наліпки
-  const run = { won:won && !race.duel, errors:race.errors, topStreak:race.topStreak, newRecord:record && prevBest > 0, drill:!!race.drill };
+  const run = { won:won && !race.duel && !race.klass, errors:race.errors, topStreak:race.topStreak, newRecord:record && prevBest > 0, drill:!!race.drill };
   const earned = STICKERS.filter(st=>!profile.stickers[st.id] && (st.test ? st.test(run) : st.count(profile) >= st.need));
   earned.forEach(st=>profile.stickers[st.id] = today());
   saveStore();
@@ -2288,8 +2302,9 @@ function finish(){
 
   // Значок і заголовок: медалі 🥇🥈🥉 лишаємо лише для змагань, тут — без них
   const failed = c && !(won && acc >= c.minAcc);
-  document.getElementById('wBig').textContent = solo ? '🏁' : !won ? (race.duel ? '🏁' : '🤖') : failed ? '🎯' : '🏆';
+  document.getElementById('wBig').textContent = race.klass ? (race.place <= 3 ? '🏆' : '🏁') : solo ? '🏁' : !won ? (race.duel ? '🏁' : '🤖') : failed ? '🎯' : '🏆';
   document.getElementById('winTitle').textContent = solo ? 'Фініш!' : !won ? (race.duel ? `${race.duel.opp.label} фінішує раніше` : 'Робот приїхав першим') : failed ? 'Етап не зараховано' : race.duel ? 'Ти фінішуєш раніше!' : 'Перемога!';
+  if(race.klass) document.getElementById('winTitle').textContent = `Твоє місце: ${race.place} з ${race.n}`;
   document.getElementById('wSub').textContent = won || solo ? '' : 'Але й ти на фініші — так тримати!';
   document.getElementById('wStars').innerHTML = [1,2,3].map(i=>`<span class="${i<=stars?'':'dim'}">⭐</span>`).join('');
   document.getElementById('wSpeed').textContent = speed;
@@ -2315,6 +2330,12 @@ function finish(){
   document.getElementById('wUnlock').querySelectorAll('.sticker').forEach(s=>s.classList.add('new'));
 
   if(race.duel){ againAction = ()=>{ toSetup(); openDuel(); }; againLabel = '🧑‍🤝‍🧑 Ще раз разом'; }
+  if(race.klass){   // таблиця місць наповнюється, поки фінішують інші; далі — чекати наступного заїзду класу
+    document.getElementById('wComp').innerHTML = '<div class="comp-box step" id="klassTable"></div>';
+    renderKlassTable();
+    againAction = ()=>{ race.klass = null; toSetup(); window.Klass.next(); };
+    againLabel = '🏫 Наступний заїзд';
+  }
   const againBtn = document.getElementById('againBtn');
   againBtn.textContent = againLabel;
   // Друга кнопка: посеред змагання — до його результатів, після вільного заїзду — у гараж,
@@ -2337,6 +2358,8 @@ function finish(){
 
 function toSetup(){
   if(race?.duel) window.Duel.leave();
+  if(race?.klass) window.Klass.leave();
+  lane3.hidden = true;
   race = null;
   raceEl.classList.remove('unfocused', 'paused');
   alertEl.hidden = true;
@@ -2408,13 +2431,95 @@ function startDuel(d){
   };
 }
 // Машинка суперника на другій смузі: його автівка, колір і табличка з ніком
-function drawOpp(o, myModel){
+function drawOpp(o, myModel, el = carBot){
   const model = CARS[o.model] ? o.model : 'beetle';
   const mine = carColor(myModel);
   const color = !o.color || o.color === mine ? (mine === BOT_COLOR ? '#16A3A0' : BOT_COLOR) : o.color;
-  carBot.innerHTML = DUST + carSVG(model, color, 'bot') + nameTag(o.label, o.badge || '');
+  el.innerHTML = DUST + carSVG(model, color, 'bot') + nameTag(o.label, o.badge || '');
 }
 duelBtn.addEventListener('click', openDuel);
+
+/* ================= «Клас»: перегони всім класом (/classrace.js каталогу) ================= */
+// Заїзд відкриває й запускає вчитель на /teacher/race/. Він надсилає трасу, мову й зерно: з нього текст складається
+// тією самою makeText, але з передбачуваним «випадковим» порядком, тож у всіх учнів текст однаковий.
+// На трасі — учень і двоє найближчих до нього суперників, під трасою — його місце серед усіх
+function withSeed(seed, fn){
+  const rnd = Math.random;
+  let a = seed >>> 0;
+  Math.random = ()=>{ a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  try{ return fn(); }finally{ Math.random = rnd; }
+}
+function openClass(){
+  window.Klass.open({ look:{ model:settings.model, color:carColor(settings.model), badge:settings.badge }, start:startClass, solo:startFree });
+}
+function startClass(d){
+  const level = TRACK_LEVEL[d.track] || 'home';
+  startRace({ track:d.track, lang:d.lang, level, text:withSeed(d.seed, ()=>makeText(d.lang, level)), model:settings.model, cpm:0, klass:d });
+  window.Klass.pos(0, race.text.length);
+  d.onField = list=>{
+    if(!race || race.klass !== d) return;
+    const t = performance.now();
+    race.n = list.length;
+    race.klassList = list;
+    for(const p of list){
+      if(p.id === d.me) continue;
+      const f = race.field[p.id] ||= { shown:0, pos:0, at:0, rate:0 };
+      Object.assign(f, { label:p.label, model:p.model, color:p.color, badge:p.badge, fin:p.fin || 0 });
+      if((p.pos || 0) > f.pos){   // як у «Разом»: темп суперника для плавного руху між оновленнями
+        if(f.at){ const inst = (p.pos - f.pos) / Math.max(0.05, (t - f.at) / 1000); f.rate = f.rate ? f.rate * 0.6 + inst * 0.4 : inst; }
+        f.pos = p.pos; f.at = t;
+      }
+      if(p.fin && race.phase !== 'done') race.botDone = true;   // хтось фінішував раніше — перемоги (1-го місця) вже не буде
+    }
+    if(race.phase === 'done') renderKlassTable();
+  };
+  d.onStop = ()=>{   // учитель зупинив заїзд; на екрані результату нічого не чіпаємо
+    if(!race || race.klass !== d || race.phase === 'done') return;
+    race.klass = null;
+    toSetup();
+    window.Klass.leave();
+    showToast('Учитель зупинив заїзд');
+  };
+}
+// Місце учня: хто вже фінішував (до нього), а поки він їде — ще й хто попереду на трасі
+function klassPlace(finished){
+  const others = Object.values(race.field);
+  return 1 + others.filter(f=>f.fin || (!finished && f.shown > race.pos)).length;
+}
+function drawField(now, dt, total){
+  const ids = Object.keys(race.field);
+  for(const id of ids){
+    const f = race.field[id];
+    const ahead = f.fin ? f.pos : Math.min(f.pos + 0.8, f.pos + f.rate * (now - (f.at || now)) / 1000);
+    f.shown = Math.min(total, Math.max(f.shown, f.shown + (ahead - f.shown) * Math.min(1, dt * 8)));
+  }
+  // Двоє найближчих; хто вже на своїй смузі й лишився серед найближчих — не пересідає
+  const nearest = ids.sort((a, b)=>Math.abs(race.field[a].shown - race.pos) - Math.abs(race.field[b].shown - race.pos)).slice(0, 2);
+  const lanes = [carBot, carBot2];
+  race.near = race.near.map(id=>nearest.includes(id) ? id : null);
+  nearest.filter(id=>!race.near.includes(id)).forEach(id=>{ const k = race.near.indexOf(null); if(k >= 0){ race.near[k] = id; drawOpp(race.field[id], race.model, lanes[k]); } });
+  race.near.forEach((id, k)=>{
+    const el = lanes[k];
+    if(!id){ if(el.innerHTML) el.innerHTML = ''; return; }
+    const f = race.field[id];
+    setP(el, f.shown / total);
+    el.classList.toggle('moving', !f.fin && now - (f.at || 0) < 1500);
+  });
+  if(race.phase === 'race' && now - (race.infoAt || 0) > 250){
+    race.infoAt = now;
+    document.getElementById('raceInfo').textContent = race.n > 1 ? `🏫 Твоє місце: ${klassPlace(false)} з ${race.n}` : '🏫 Перегони класом';
+  }
+}
+// Таблиця місць на екрані результату: перші п'ять і сам учень
+function renderKlassTable(){
+  const el = document.getElementById('klassTable');
+  if(!el || !race?.klassList) return;
+  const ranked = race.klassList.slice().sort((a, b)=>(a.fin && b.fin) ? a.fin - b.fin : a.fin ? -1 : b.fin ? 1 : (b.pos || 0) - (a.pos || 0));
+  const me = race.klass.me;
+  const rows = ranked.map((p, i)=>({ p, i })).filter(({ p, i })=>i < 5 || p.id === me);
+  el.innerHTML = `<b>🏫 Місця в класі</b>` + rows.map(({ p, i })=>`<div class="klass-row${p.id === me ? ' me' : ''}">${i + 1}. ${esc(p.label)}${p.fin ? ' 🏁' : ' …'}</div>`).join('');
+}
+classBtn.addEventListener('click', openClass);
 document.getElementById('againBtn').addEventListener('click', ()=>againAction());
 document.getElementById('toSetupBtn').addEventListener('click', ()=>exitAction());
 document.getElementById('exitBtn').addEventListener('click', toSetup);
