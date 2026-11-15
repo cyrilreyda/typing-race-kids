@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#16A3A0">
 <script src="/lock.js"></script>   <!-- замок «лише на уроці» з каталогу; у грі з архіву його немає, і вона відкривається як завжди -->
 <script src="/account.js"></script>   <!-- спільний акаунт учня з каталогу; без нього гра питає ім'я, як раніше -->
-<script src="/duel.js"></script>   <!-- дуель з однокласником; без акаунта її немає -->
+<script src="/duel.js"></script>   <!-- «Разом»: перегони з однокласником; без акаунта їх немає -->
 <style>
   :root{
     --bg:#F6F5FB; --ink:#1B1B3A; --ink-soft:#514F72; --surface:#FFFFFF; --line:#E4E1F5;
@@ -550,7 +550,7 @@
 
 <main class="container">
   <section class="track" id="track" aria-label="Траса">
-    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🚦 На старт!</button><button class="btn btn-ghost btn-big" id="duelBtn" hidden>⚔️ Дуель</button></div>
+    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🚦 На старт!</button><button class="btn btn-ghost btn-big" id="duelBtn" hidden>🧑‍🤝‍🧑 Разом</button></div>
     <span class="track-name" id="trackName"></span>
     <div class="scene scene-top" id="sceneTop"></div>
     <div class="road">
@@ -1573,7 +1573,7 @@ function showTab(id){
   if(id === 'paneComp'){ renderCompPane(); previewComp(); startBar.hidden = false; }
   else if(id === 'paneComps'){ renderComps(); startBar.hidden = true; }
   else { applyTrack(settings.track); drawCars(); setP(carMe, 0); setP(carBot, 0); startBar.hidden = false; }
-  duelBtn.hidden = !(id === 'paneFree' && window.Duel?.available());   // дуель — лише у вільному заїзді
+  duelBtn.hidden = !(id === 'paneFree' && window.Duel?.available());   // «Разом» — лише у вільному заїзді
 }
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{ if(!t.classList.contains('on')) showTab(t.dataset.tab); }));
 
@@ -2284,7 +2284,7 @@ function finish(){
   // Значок і заголовок: медалі 🥇🥈🥉 лишаємо лише для змагань, тут — без них
   const failed = c && !(won && acc >= c.minAcc);
   document.getElementById('wBig').textContent = solo ? '🏁' : !won ? (race.duel ? '🏁' : '🤖') : failed ? '🎯' : '🏆';
-  document.getElementById('winTitle').textContent = solo ? 'Фініш!' : !won ? (race.duel ? `${race.duel.opp.label} — перший на фініші` : 'Робот приїхав першим') : failed ? 'Етап не зараховано' : 'Перемога!';
+  document.getElementById('winTitle').textContent = solo ? 'Фініш!' : !won ? (race.duel ? `${race.duel.opp.label} фінішує раніше` : 'Робот приїхав першим') : failed ? 'Етап не зараховано' : race.duel ? 'Ти фінішуєш раніше!' : 'Перемога!';
   document.getElementById('wSub').textContent = won || solo ? '' : 'Але й ти на фініші — так тримати!';
   document.getElementById('wStars').innerHTML = [1,2,3].map(i=>`<span class="${i<=stars?'':'dim'}">⭐</span>`).join('');
   document.getElementById('wSpeed').textContent = speed;
@@ -2309,7 +2309,7 @@ function finish(){
     (earned.length ? `<div class="unlock"><b>🎉 ${earned.length > 1 ? 'Нові наліпки' : 'Нова наліпка'}!</b><div class="stickers">${earned.map(stickerHTML).join('')}</div></div>` : '');
   document.getElementById('wUnlock').querySelectorAll('.sticker').forEach(s=>s.classList.add('new'));
 
-  if(race.duel){ againAction = ()=>{ toSetup(); openDuel(); }; againLabel = '⚔️ Ще дуель'; }
+  if(race.duel){ againAction = ()=>{ toSetup(); openDuel(); }; againLabel = '🧑‍🤝‍🧑 Ще раз разом'; }
   const againBtn = document.getElementById('againBtn');
   againBtn.textContent = againLabel;
   // Друга кнопка: посеред змагання — до його результатів, після вільного заїзду — у гараж,
@@ -2367,7 +2367,7 @@ function confetti(n = 70){
 
 startBtn.addEventListener('click', ()=>activeTab() === 'paneComp' ? startComp(selComp) : startFree());
 
-/* ================= Дуель з однокласником (/duel.js каталогу) ================= */
+/* ================= «Разом»: перегони з однокласником (/duel.js каталогу; у коді — duel) ================= */
 // Той, хто кличе, задає трасу, мову й текст; суперник їде тим самим. Машинка робота стає машинкою суперника
 function openDuel(){
   window.Duel.open({
@@ -2390,7 +2390,7 @@ function startDuel(d){
       if(race.phase !== 'done' && !race.botDone){ race.botDone = true; showTip(`${d.opp.label} уже на фініші. Допиши текст до кінця!`); }
     } else if(o.left && !race.oppLeft){
       race.oppLeft = true;
-      if(race.phase !== 'done') showTip(`${d.opp.label} вийшов з дуелі. Доїдь до фінішу!`);
+      if(race.phase !== 'done') showTip(`${d.opp.label} уже не в заїзді. Доїдь до фінішу!`);
     }
   };
 }
