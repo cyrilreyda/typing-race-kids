@@ -2397,7 +2397,8 @@ document.getElementById('nameCancel').addEventListener('click', ()=>nameOverlay.
 // пропонуємо забрати свій прогрес (забраний гравець зникає зі списку, щоб його не забрав ще хтось)
 function enterAccount(){
   const me = ACC.user.label, saved = ACC.get(STORE_KEY);
-  const begin = p=>{ store = { current:me, players:{ [me]:p || newProfile() } }; enterGame(me); };
+  // Поля, яких бракує в збережених даних (новіша версія гри, неповний запис), — як у нового гравця, інакше заїзд падає
+  const begin = p=>{ store = { current:me, players:{ [me]:{ ...newProfile(), ...p } } }; enterGame(me); };
   const names = Object.keys(legacy.players);
   if(saved || ACC.user.guest || !names.length){ begin(saved); return; }
   nameRequired = true;
