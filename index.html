@@ -73,6 +73,8 @@
   .flake{position:absolute; top:-12px; width:6px; height:6px; border-radius:50%; background:#fff; box-shadow:0 0 0 1px rgba(110,160,205,.6), 0 1px 3px rgba(50,90,140,.4); animation:flake linear infinite;}
   .flake.big{width:auto; height:auto; background:none; box-shadow:none; border-radius:0; line-height:1; color:#fff; text-shadow:0 0 1px #2F6A9C, 0 0 1px #2F6A9C, 0 0 4px #7FB0D8;}
   @keyframes flake{25%{transform:translate(10px, 82px);} 50%{transform:translate(-8px, 165px);} 75%{transform:translate(8px, 248px);} to{transform:translate(-20px, 330px);}}
+  .flake.big{animation-name:flake-spin;}
+  @keyframes flake-spin{25%{transform:translate(10px, 82px) rotate(90deg);} 50%{transform:translate(-8px, 165px) rotate(180deg);} 75%{transform:translate(8px, 248px) rotate(270deg);} to{transform:translate(-20px, 330px) rotate(360deg);}}
   @keyframes snow{to{transform:translate(-30px, 330px);}}
   /* Париж — кульки летять угору; Нью-Йорк — зорі мерехтять; Токіо — пелюстки сакури; Каїр — вітер із піском; Ріо — конфеті */
   .balloon{position:absolute; bottom:-34px; width:13px; height:16px; border-radius:50% 50% 50% 50% / 45% 45% 55% 55%; animation:rise linear infinite;}
@@ -1683,7 +1685,7 @@ function applyTrack(id){
       const f = document.createElement('div');
       f.className = t.fx === 'snow' ? 'flake' : 'leaf';
       f.style.left = (Math.random()*105) + '%';
-      f.style.animationDuration = (t.fx === 'snow' ? 4 + Math.random()*4 : 6 + Math.random()*5) + 's';
+      f.style.animationDuration = (t.fx === 'snow' ? 2.5 + Math.random()*2.5 : 6 + Math.random()*5) + 's';
       f.style.animationDelay = (-Math.random()*8) + 's';
       if(t.fx === 'snow' && i % 3 === 0){ f.className = 'flake big'; f.textContent = '❄'; f.style.fontSize = (12 + Math.random()*9) + 'px'; }
       else if(t.fx === 'snow'){ const s = 3 + Math.random()*5; f.style.width = f.style.height = s + 'px'; }
