@@ -69,8 +69,23 @@
   /* Ефекти трас: сонце пустелі, сніг Арктики */
   .fx{position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:1;}
   .sun{position:absolute; top:8px; right:70px; width:40px; height:40px; border-radius:50%; background:#FFC93C; box-shadow:0 0 0 8px rgba(255,201,60,.3), 0 0 0 16px rgba(255,201,60,.15);}
-  .flake{position:absolute; top:-8px; width:6px; height:6px; border-radius:50%; background:#fff; box-shadow:0 0 2px rgba(80,120,160,.5); animation:snow linear infinite;}
+  /* сніжинки з блакитним контуром, бо небо й сніг Арктики білі; великі — знаком ❄, падають гойдаючись */
+  .flake{position:absolute; top:-12px; width:6px; height:6px; border-radius:50%; background:#fff; box-shadow:0 0 0 1px rgba(110,160,205,.6), 0 1px 3px rgba(50,90,140,.4); animation:flake linear infinite;}
+  .flake.big{width:auto; height:auto; background:none; box-shadow:none; border-radius:0; line-height:1; color:#fff; text-shadow:0 0 1px #2F6A9C, 0 0 1px #2F6A9C, 0 0 4px #7FB0D8;}
+  @keyframes flake{25%{transform:translate(10px, 82px);} 50%{transform:translate(-8px, 165px);} 75%{transform:translate(8px, 248px);} to{transform:translate(-20px, 330px);}}
   @keyframes snow{to{transform:translate(-30px, 330px);}}
+  /* Париж — кульки летять угору; Нью-Йорк — зорі мерехтять; Токіо — пелюстки сакури; Каїр — вітер із піском; Ріо — конфеті */
+  .balloon{position:absolute; bottom:-34px; width:13px; height:16px; border-radius:50% 50% 50% 50% / 45% 45% 55% 55%; animation:rise linear infinite;}
+  .balloon::after{content:''; position:absolute; left:50%; top:100%; width:1px; height:14px; background:rgba(60,60,80,.45);}
+  @keyframes rise{to{transform:translate(24px, -390px);}}
+  .star{position:absolute; width:3px; height:3px; border-radius:50%; background:#FFF4C2; box-shadow:0 0 4px #FFF4C2; animation:twinkle ease-in-out infinite alternate;}
+  @keyframes twinkle{from{opacity:.15;} to{opacity:1;}}
+  .petal{position:absolute; top:-10px; width:8px; height:6px; border-radius:6px 0 6px 0; background:#F7A8C4; animation:petal linear infinite;}
+  @keyframes petal{to{transform:translate(-70px, 330px) rotate(600deg);}}
+  .grain{position:absolute; left:100%; height:1.5px; border-radius:2px; background:rgba(176,124,58,.5); animation:sand linear infinite;}
+  @keyframes sand{to{transform:translateX(-125vw);}}
+  .confetti{position:absolute; top:-10px; width:6px; height:9px; border-radius:1px; animation:confetti linear infinite;}
+  @keyframes confetti{to{transform:translate(-25px, 330px) rotate(720deg);}}
   .drop{position:absolute; top:-14px; width:1.5px; height:11px; border-radius:1px; background:rgba(255,255,255,.75); animation:rain linear infinite;}
   @keyframes rain{to{transform:translate(-14px, 330px);}}
   .leaf{position:absolute; top:-10px; width:9px; height:6px; border-radius:6px 0; background:#E8A33D; animation:snow linear infinite;}
@@ -727,6 +742,12 @@ const TEXTS = {
     ukpunct:["Привіт, Олено! Ти вже зробила домашнє завдання?","М'яч, п'ять, об'єкт - слова з апострофом.","Сьогодні вівторок; завтра - середа.","Що краще: миша чи сенсорна панель?","Комп'ютер, принтер, сканер - пристрої.","Ой, я забув пароль! Що робити?","Олег запитав: \"Де моя флешка?\"","Пам'ятай: пароль - це твій секрет.","Сім'я, здоров'я, подвір'я - пишемо з апострофом.","Файл (документ) збережено; можна закривати.","Тиша! Йде урок інформатики.","Чи знаєш ти, як скопіювати текст?","Будь ласка, вимкни звук: йде контрольна.","Ура! Ми перемогли в олімпіаді!","Дмитро сказав: \"Я вже вивчив сліпий друк\".","Хто знайде помилку, той отримає бонус."],
     // Речення з числами, датами й часом — змагання «Цифри й код»
     digits:["У нашому класі 27 учнів.","Урок починається о 8:30.","Мій день народження 15.03.2014.","У тижні 7 днів, а в році 12 місяців.","Кабінет інформатики - номер 105.","На парті лежать 3 олівці і 2 ручки.","Флешка має 64 гігабайти пам'яті.","Перерва триває 15 хвилин.","Київ заснували понад 1500 років тому.","Сьогодні 19 жовтня 2026 року.","У шкільній бібліотеці 4800 книжок.","Номер телефону: 044-123-45-67.","Квартира 12, поверх 4, під'їзд 2.","Мій пароль має 10 символів.","Олімпіада буде 25.11 о 10:00."],
+    // Траси міст світу: речення про місто з цифрами й розділовими знаками, на «Токіо», «Каїрі» й «Ріо» — ще й № % * ( ) _ ₴
+    paris:["Привіт, Париже! Я вже тут.", "Ейфелева вежа має 3 поверхи.", "У кафе 2 круасани і 1 какао.", "Річка Сена тече через місто.", "На вежі понад 1600 сходинок!", "Лувр - дуже великий музей.", "Ми гуляли 5 годин; ноги втомилися.", "Мама сказала: \"Дивись, вежа!\"", "Квиток на поїзд: вагон 7, місце 24.", "Ой, пішов дощ! Де парасолька?", "Вежу збудували у 1889 році.", "Багет, сир і яблуко - смачно!", "О 9:00 відкривається музей.", "Художник малює 3 картини: небо, міст і квіти.", "Ура! Ми на вершині вежі!"],
+    newyork:["Нью-Йорк ніколи не спить!", "Статую Свободи відкрили у 1886 році.", "Жовте таксі чекає на розі.", "У Нью-Йорку 5 районів.", "Ми піднялися на 86 поверх!", "Цей хмарочос має 102 поверхи.", "Тато спитав: \"Де наш готель?\"", "Центральний парк - зелений і великий.", "Автобус 42 їде до парку.", "О 7:30 сніданок; о 8:00 - у дорогу.", "Ого! Скільки вогнів!", "Бруклінський міст довгий, але красивий.", "Чи бачиш статую? Вона зелена!", "У парку 3 білки, 2 собаки і 1 кіт."],
+    tokyo:["Поїзд №5 їде до Токіо.", "Гора Фудзі (3776 м) - найвища в Японії.", "Знижка 20% на всі сувеніри!", "Вагон №3, місце №12.", "Сакура цвіте навесні (у квітні).", "Мій логін: кіт_самурай.", "2 * 3 - це 6.", "Батарея заряджена на 80%.", "Сувенір коштує 150 ₴.", "Роботи (і люди) люблять суші!", "Вежа Скайтрі (634 м) - дуже висока.", "Готель №7, кімната №21.", "Ура! Ми бачимо гору Фудзі!", "Назва фото: сакура_1."],
+    cairo:["Піраміді Хеопса понад 4500 років.", "Ніл (6650 км) - дуже довга річка.", "Верблюд №2 везе воду.", "Сьогодні спекотно: 35 градусів!", "Квиток у музей - 200 ₴.", "Сфінкс (лев з головою людини) стереже піраміди.", "Ми взяли 3 пляшки води (по 1 л).", "Заряд телефону: 15%!", "Каїр - столиця Єгипту.", "Зала №4: мумії й скарби.", "Назва файлу: піраміда_1.", "Ой! Пісок у черевиках!", "У Гізі 3 великі піраміди.", "Знижка 10% на листівки!"],
+    rio:["Карнавал у Ріо - дуже веселий!", "Гора Цукрова Голова (396 м) стоїть біля моря.", "Вагончик №1 їде вгору.", "Знижка 30% на морозиво!", "Папуга (жовто-синій) сидить на пальмі.", "Пляж Копакабана - це 4 км піску.", "Футбол о 17:00 - не запізнюйся!", "Квиток на карнавал: 500 ₴.", "У кошику 6 манго (і 2 банани).", "Барабани гучні: бум, бум, бум!", "Костюм №8 - найяскравіший!", "Ріо-де-Жанейро - місто в Бразилії.", "Назва фото: пляж_ріо.", "Сонце, море, пісок - ура!"],
     // Повні речення оригінальної гри — для режиму ?boost
     full:['Клавіатура допомагає швидко вводити текст.','Миша та клавіатура є пристроями введення.',
            'Друкуй усіма десятьма пальцями.','Дивись на екран і не підглядай на клавіші.','Надійний пароль довгий і складний.',
@@ -749,6 +770,12 @@ const TEXTS = {
            'Save your work every few minutes.','A strong password is long and secret.','The printer puts text on paper.',
            'Every file lives in a folder.','Slow and steady wins the race.','Look at the screen and not at the keys.',
            'Computers help us learn new things.','Keep your fingers on the home row.'],
+    // Траси міст світу: на «Токіо», «Каїрі» й «Ріо» — ще й @ # $ % & * ( ) + = / _
+    paris:["Hello, Paris! We are here.", "The Eiffel Tower has 3 levels.", "We ate 2 croissants and 1 baguette.", "The river Seine is very long.", "Wow! The tower is so tall!", "Mum said: \"Look at the lights!\"", "Our train leaves at 10:45.", "It's 5 o'clock; time for tea.", "Is the museum open? Yes, it is!", "The tower was built in 1889.", "Room 12, floor 3 - our hotel.", "Paris, London, Kyiv - big cities.", "Can I have 4 stamps, please?", "I don't like rain, but I like Paris."],
+    newyork:["New York never sleeps!", "The Statue of Liberty is green.", "A yellow taxi is waiting.", "We went up to floor 86!", "This tower has 102 floors.", "Dad asked: \"Where is our hotel?\"", "Central Park is big and green.", "Bus 42 goes to the park.", "It's 7:30; let's have breakfast.", "Wow! Look at all the lights!", "Is the bridge long? Yes, very long!", "I see 3 squirrels, 2 dogs and 1 cat.", "Don't run - walk, please.", "The museum opens at 10:00."],
+    tokyo:["Train #5 goes to Tokyo.", "Mount Fuji (3776 m) is very tall.", "Sushi & rice: $7.", "Write to me: yuki@school.jp.", "50% off all toys!", "2 + 3 = 5.", "Room #21, floor 7.", "Cats & dogs love the park.", "Skytree (634 m) is a TV tower.", "Battery: 80%.", "My photo: sakura_1.png.", "10 / 2 = 5.", "I have 3 (three) red pens.", "Tea & cake: $4."],
+    cairo:["The Great Pyramid is over 4500 years old.", "The Nile (6650 km) is very long.", "Camel #2 carries water.", "It's hot: 35 degrees!", "Tickets: $10 for kids.", "The Sphinx (a lion & a man) guards the pyramids.", "We took 3 bottles of water (1 l each).", "Phone battery: 15%!", "Cairo is the capital of Egypt.", "Hall #4: mummies & gold.", "2 + 1 = 3 big pyramids.", "My file: pyramid_1.jpg.", "Oops! Sand in my shoes!", "Mail me: anna@school.ua."],
+    rio:["The carnival in Rio is so much fun!", "Sugarloaf Mountain (396 m) is by the sea.", "Cable car #1 goes up.", "30% off ice cream!", "A parrot (blue & yellow) sits on a palm.", "Copacabana beach is 4 km long.", "Football at 5:00 - don't be late!", "Carnival ticket: $25.", "6 mangoes + 2 bananas = 8 fruits.", "Drums go: boom, boom, boom!", "Costume #8 is the brightest!", "Rio is a city in Brazil.", "My photo: beach_rio.png.", "Sun & sea & sand - hooray!"],
     // Рядки коду — змагання «Цифри й код»
     code:["x = 5 + 3","print('Hello, world!')","name = input('Name: ')","for i in range(10):","if score > 90:","a = [1, 2, 3]","total = price * 2","user = {'age': 12}","while x < 100:","print(len(text))","def hello():","y = (x + 1) * 2","email = 'kid@school.ua'","colors = ['red', 'blue']","# my first program","z = x // 2 - 1"],
     // Речення з розділовими знаками . , - ( ) " ! ? @ ' : — для змагання «Слалом знаків»
@@ -1043,6 +1070,186 @@ function arcticBottom(){
     <circle cx="38" cy="15" r="1" fill="#fff"/><circle cx="42" cy="15" r="1" fill="#fff"/><path d="M38.5 17.5 H41.5 L40 19.5 Z" fill="#FF9F43"/>
     <ellipse cx="37" cy="33" rx="2.5" ry="1.2" fill="#FF9F43"/><ellipse cx="43" cy="33" rx="2.5" ry="1.2" fill="#FF9F43"/>`);
 }
+// Дерево з круглою кроною (Париж) і пальма (Каїр, Ріо)
+const roundTree = (x, y, r, c) => `<rect x="${x-1.5}" y="${y}" width="3" height="${64-y}" fill="#8B5A2B"/><circle cx="${x}" cy="${y-r*.3}" r="${r}" fill="${c}"/><circle cx="${x-r*.45}" cy="${y}" r="${r*.6}" fill="${c}"/>`;
+function palm(x, h){
+  const top = 64 - h;
+  let s = `<path d="M${x} 64 Q${x+4} ${top+h*.5} ${x+2} ${top}" fill="none" stroke="#9C6B3C" stroke-width="3.2" stroke-linecap="round"/>`;
+  for(let y = top+4; y < 62; y += 5) s += `<path d="M${x+1.2} ${y} h2.6" stroke="#7A5230" stroke-width=".8"/>`;
+  s += [[-14,6],[-10,-2],[0,-6],[10,-2],[14,6]].map(([dx,dy])=>`<path d="M${x+2} ${top} Q${x+2+dx*.5} ${top+dy-5} ${x+2+dx} ${top+dy+4}" fill="none" stroke="#3E9B4F" stroke-width="3" stroke-linecap="round"/>`).join('');
+  return s + `<circle cx="${x+1}" cy="${top+2}" r="1.6" fill="#7A5230"/><circle cx="${x+3.4}" cy="${top+2.4}" r="1.6" fill="#7A5230"/>`;
+}
+// Париж: будинки з мансардами, Ейфелева вежа, Тріумфальна арка, міст через Сену
+function parisTop(){
+  let s = '<rect width="480" height="64" fill="#FBE7DC"/><ellipse cx="90" cy="10" rx="20" ry="4.5" fill="#fff"/><ellipse cx="330" cy="8" rx="16" ry="4" fill="#fff"/><ellipse cx="440" cy="13" rx="14" ry="3.5" fill="#fff"/>';
+  const house = (x, w, h) => { const y = 64 - h;
+    let b = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#F1E4CC"/><path d="M${x-1} ${y} L${x+3} ${y-7} H${x+w-3} L${x+w+1} ${y} Z" fill="#7F8EA6"/>`;
+    for(let wx = x+3; wx < x+w-4; wx += 7) b += `<rect x="${wx+.5}" y="${y-5}" width="3" height="4" fill="#E9EEF5"/>`;
+    for(let wy = y+4; wy < 57; wy += 9) for(let wx = x+3; wx < x+w-4; wx += 7)
+      b += `<rect x="${wx}" y="${wy}" width="4" height="6" fill="#9FB6CF"/><rect x="${wx-.5}" y="${wy+6}" width="5" height="1.2" fill="#4A4A5E"/>`;
+    return b; };
+  s += house(4, 26, 34) + house(34, 30, 41) + house(68, 24, 30) + house(96, 28, 38) + house(128, 22, 31);
+  s += roundTree(162, 50, 8, '#5FAF63') + roundTree(240, 52, 7, '#4E9F57');
+  // Ейфелева вежа: дві опори з аркою, два майданчики, решітка
+  const ex = 200;
+  s += `<path d="M${ex-24} 64 Q${ex-10} 44 ${ex-4} 14 L${ex-1.5} 2 H${ex+1.5} L${ex+4} 14 Q${ex+10} 44 ${ex+24} 64 H${ex+15} Q${ex} 46 ${ex-15} 64 Z" fill="#8A6B52"/>
+    <rect x="${ex-14}" y="40" width="28" height="3" fill="#6E533F"/><rect x="${ex-7}" y="24" width="14" height="2.5" fill="#6E533F"/><rect x="${ex-3}" y="12" width="6" height="2" fill="#6E533F"/>
+    <path d="M${ex-10} 43 L${ex+7} 52 M${ex+10} 43 L${ex-7} 52 M${ex-5} 26.5 L${ex+5} 40 M${ex+5} 26.5 L${ex-5} 40 M${ex-3} 14 L${ex+3} 24 M${ex+3} 14 L${ex-3} 24" stroke="#B08E70" stroke-width=".8"/>
+    <path d="M${ex} 2 V0" stroke="#6E533F" stroke-width="1"/>`;
+  // Тріумфальна арка
+  s += `<rect x="282" y="34" width="34" height="30" fill="#E6D6B8"/><rect x="280" y="31" width="38" height="5" fill="#D4C19E"/>
+    <path d="M292 64 V50 Q299 42 306 50 V64 Z" fill="#B9A27C"/><rect x="282" y="40" width="34" height="1.5" fill="#D4C19E"/>`;
+  // Сена й кам'яний міст із ліхтарями
+  s += `<rect x="326" y="55" width="96" height="9" fill="#8CC3E0"/><rect x="326" y="49" width="96" height="4" fill="#D8C8A8"/>
+    ${[338,370,402].map(x=>`<path d="M${x-12} 53 Q${x} 44 ${x+12} 53 V64 H${x-12} Z" fill="#8CC3E0"/><path d="M${x-12} 53 Q${x} 44 ${x+12} 53" fill="none" stroke="#C4B08C" stroke-width="2"/>`).join('')}
+    ${[332,364,396].map(x=>`<rect x="${x}" y="40" width="1.4" height="9" fill="#3E4A3E"/><circle cx="${x+.7}" cy="39.5" r="2" fill="#FFE07A"/>`).join('')}`;
+  s += house(426, 24, 36) + house(453, 26, 30);
+  return tile(480, 64, s);
+}
+function parisBottom(){
+  return tile(140, 40, `<rect width="140" height="40" fill="#E3D9CC"/><path d="M0 13 H140 M0 27 H140 M20 0 V13 M60 13 V27 M100 27 V40" stroke="#D2C6B6" stroke-width="1"/>
+    <rect x="6" y="5" width="48" height="8" fill="#fff"/>${[0,1,2,3,4,5].map(i=>`<rect x="${6+i*8}" y="5" width="4" height="8" fill="#E0464A"/><circle cx="${8+i*8}" cy="13" r="2" fill="#E0464A"/><circle cx="${12+i*8}" cy="13" r="2" fill="#fff"/>`).join('')}
+    <ellipse cx="30" cy="25" rx="9" ry="2.4" fill="#fff" stroke="#9A8C7A" stroke-width=".8"/><rect x="29.3" y="26" width="1.4" height="10" fill="#4A4A5E"/><rect x="25" y="35" width="10" height="1.4" fill="#4A4A5E"/>
+    <rect x="25" y="20.5" width="3.4" height="3.6" rx="1" fill="#fff" stroke="#9A8C7A" stroke-width=".6"/><path d="M31 23.5 Q34 19.5 37 23.5 Z" fill="#E2A64B"/>
+    <path d="M14 36 V24 Q14 20 18 20 M46 36 V24 Q46 20 42 20 M14 29 H19 M46 29 H41" fill="none" stroke="#5B3A2A" stroke-width="1.4"/>
+    <rect x="77.5" y="10" width="3" height="28" fill="#2F4A3A"/><path d="M73 10 H85 L83 4 H75 Z" fill="#2F4A3A"/><rect x="75.5" y="5" width="7" height="4.5" fill="#FFE07A"/>
+    <rect x="98" y="26" width="34" height="10" rx="1.5" fill="#9C6B3C"/>${[102,108,114,120,126].map((x,i)=>`<circle cx="${x+1}" cy="23" r="3" fill="${['#E0464A','#F7A8C4','#FFC93C','#E0464A','#B07CD8'][i]}"/>`).join('')}
+    <path d="M100 26 Q105 20 110 26 M112 26 Q118 19 124 26" fill="none" stroke="#4E9F57" stroke-width="1"/>`);
+}
+// Нью-Йорк уночі: Статуя Свободи, хмарочоси з вогнями, Емпайр-стейт-білдінг, Крайслер-білдінг
+function newyorkTop(){
+  let s = '<rect width="480" height="64" fill="#2C3463"/><circle cx="120" cy="12" r="7" fill="#FFF3C4"/><circle cx="123" cy="10" r="6" fill="#2C3463"/>';
+  // Статуя Свободи на острові
+  s += `<rect x="0" y="58" width="80" height="6" fill="#3B5A8C"/><ellipse cx="38" cy="59" rx="18" ry="3" fill="#4C5A6E"/>
+    <rect x="30" y="44" width="16" height="15" fill="#6E7891"/><rect x="28" y="42" width="20" height="3" fill="#7F8AA3"/>
+    <path d="M33 42 L35.5 27 H40.5 L43 42 Z" fill="#6FB79E"/><circle cx="38" cy="25" r="2.6" fill="#6FB79E"/>
+    <path d="M35 23.5 L33.5 21 M37 22.6 L36.5 19.8 M39 22.6 L39.5 19.8 M41 23.5 L42.5 21" stroke="#6FB79E" stroke-width=".9"/>
+    <path d="M40 28 L43.5 15" stroke="#6FB79E" stroke-width="2" stroke-linecap="round"/><rect x="42.6" y="13" width="2.2" height="2.4" fill="#6FB79E"/>
+    <circle cx="43.7" cy="11.6" r="2" fill="#FFC93C"/><rect x="33.2" y="31" width="2.6" height="4" fill="#5FA48C"/>`;
+  // хмарочоси з вогниками у вікнах
+  const tower = (x, w, h, c) => { const y = 64 - h;
+    let b = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`;
+    for(let wy = y+3, r = 0; wy < 62; wy += 5, r++) for(let wx = x+2, k = 0; wx < x+w-2; wx += 4, k++)
+      if((r * 3 + k * 7 + x) % 5 > 1) b += `<rect x="${wx}" y="${wy}" width="2" height="2.6" fill="#FFD66B"/>`;
+    return b; };
+  s += tower(90, 22, 30, '#414A7E') + tower(114, 16, 40, '#384171') + tower(150, 24, 34, '#414A7E') + tower(176, 18, 46, '#4A548A');
+  // Емпайр-стейт-білдінг: уступи й шпиль
+  s += tower(236, 30, 34, '#4A548A') + tower(241, 20, 44, '#4A548A') + tower(245, 12, 52, '#4A548A') + `<rect x="249" y="1" width="2" height="11" fill="#8C95B8"/>`;
+  s += tower(200, 26, 28, '#384171') + tower(272, 20, 38, '#414A7E') + tower(296, 18, 30, '#384171');
+  // Крайслер-білдінг: корона з арок
+  s += tower(320, 20, 40, '#4A548A') + `<path d="M322 24 Q330 12 338 24 Z M324.5 20 Q330 9 335.5 20 Z M327 15 Q330 6 333 15 Z" fill="#C9CED8"/>
+    ${[0,1,2].map(i=>`<path d="M${323+i*2.5} ${24-i*4.5} Q330 ${15-i*4.5} ${337-i*2.5} ${24-i*4.5}" fill="none" stroke="#2C3463" stroke-width=".6"/>`).join('')}
+    <rect x="329.5" y="0" width="1" height="7" fill="#C9CED8"/>`;
+  s += tower(344, 26, 32, '#414A7E') + tower(372, 18, 44, '#384171') + tower(392, 30, 26, '#414A7E') + tower(424, 20, 38, '#4A548A') + tower(446, 32, 30, '#384171');
+  return tile(480, 64, s);
+}
+function newyorkBottom(){
+  return tile(140, 40, `<rect width="140" height="40" fill="#BFC3CC"/><path d="M0 20 H140 M35 0 V20 M90 20 V40" stroke="#AAAEB9" stroke-width="1"/>
+    <g transform="translate(8 14)"><path d="M2 8 L10 1 H32 L40 8 H46 Q48 8 48 11 V17 H0 V10 Q0 8 2 8 Z" fill="#F7C531"/>
+      <path d="M12 3 H20 V8 H6 Z M23 3 H31 L37 8 H23 Z" fill="#CFEFFF"/><rect x="17" y="-2.5" width="10" height="3.5" rx="1" fill="#fff"/>
+      <text x="22" y=".3" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="3.2" fill="#1B1B3A">TAXI</text>
+      ${[0,1,2,3,4,5].map(i=>`<rect x="${6+i*6}" y="10.5" width="3" height="2" fill="#1B1B3A"/>`).join('')}
+      <circle cx="11" cy="17.5" r="4" fill="#1B1B3A"/><circle cx="38" cy="17.5" r="4" fill="#1B1B3A"/><circle cx="11" cy="17.5" r="1.5" fill="#BFC3CC"/><circle cx="38" cy="17.5" r="1.5" fill="#BFC3CC"/></g>
+    <rect x="72" y="22" width="8" height="14" rx="3" fill="#D7263D"/><rect x="70" y="25" width="12" height="3" rx="1.5" fill="#D7263D"/><rect x="73" y="19" width="6" height="4" rx="2" fill="#B21E31"/>
+    <g transform="translate(96 8)"><rect x="0" y="10" width="30" height="14" rx="2" fill="#E9EDF2" stroke="#8C95A8" stroke-width=".8"/>
+      <path d="M-2 10 L4 2 H26 L32 10 Z" fill="#2D9CDB"/>${[0,1,2,3].map(i=>`<path d="M${4+i*5.5} 2 h2.75 l1 8 h-2.75 Z" fill="#fff"/>`).join('')}
+      <rect x="7" y="14" width="16" height="4" rx="2" fill="#E2A64B"/><rect x="8" y="14.8" width="14" height="2.4" rx="1.2" fill="#C0392B"/>
+      <circle cx="6" cy="27" r="3" fill="#1B1B3A"/><circle cx="24" cy="27" r="3" fill="#1B1B3A"/></g>`);
+}
+// Токіо: сакура, гора Фудзі, пагода, Токійська вежа, ворота торії
+const sakura = (x, y, r) => `<path d="M${x} 64 V${y} M${x} ${y+6} L${x-5} ${y+1} M${x} ${y+4} L${x+5} ${y}" stroke="#7A4E3A" stroke-width="2.4" stroke-linecap="round"/>` +
+  [[0,-.5,1],[-.8,0,.75],[.8,0,.75],[-.4,.35,.6],[.45,.4,.6]].map(([dx,dy,k],i)=>`<circle cx="${x+dx*r}" cy="${y+dy*r}" r="${r*k*.7}" fill="${i%2 ? '#F49AB8' : '#F9C3D5'}"/>`).join('');
+function tokyoTop(){
+  let s = '<rect width="480" height="64" fill="#FDEEF3"/><ellipse cx="300" cy="9" rx="18" ry="4" fill="#fff"/><circle cx="440" cy="14" r="8" fill="#F2545B" opacity=".85"/>';
+  // Фудзі зі сніговою шапкою
+  s += `<path d="M30 64 L92 18 Q110 11 128 18 L190 64 Z" fill="#8FA8D6"/><path d="M110 13 L128 18 L190 64 H110 Z" fill="#7E97C6"/>
+    <path d="M92 18 Q110 11 128 18 L137 25 L128 23 L120 28 L111 23 L102 28 L94 23 L84 25 Z" fill="#fff"/>`;
+  s += sakura(20, 44, 11) + sakura(176, 46, 10);
+  // пагода: п'ять ярусів, вигнуті червоні дахи
+  const cx = 232;
+  let p = `<rect x="${cx-15}" y="60" width="30" height="4" fill="#9B8E80"/>`;
+  for(let i = 0; i < 5; i++){ const bw = 16 - i*2.4, y0 = 60 - (i+1)*8.5; p += `<rect x="${cx-bw/2}" y="${y0}" width="${bw}" height="8.5" fill="#F4E3C8"/><rect x="${cx-1.5}" y="${y0+3}" width="3" height="4" fill="#7A4E3A"/>`; }
+  for(let i = 0; i < 5; i++){ const rw = 26 - i*3.2, yr = 60 - (i+1)*8.5 + 1.5;
+    p += `<path d="M${cx-rw/2} ${yr+1.5} Q${cx} ${yr-3.5} ${cx+rw/2} ${yr+1.5} L${cx+rw/2-4} ${yr-1.5} H${cx-rw/2+4} Z" fill="#C8372D"/>`; }
+  s += p + `<path d="M${cx} 19 V5" stroke="#5A4A3A" stroke-width="1.2"/>${[8,11,14].map(y=>`<rect x="${cx-2}" y="${y}" width="4" height="1.2" fill="#5A4A3A"/>`).join('')}`;
+  s += sakura(280, 46, 10);
+  // Токійська вежа: червоно-біла решітка
+  const tx = 336;
+  s += `<path d="M${tx-17} 64 L${tx-3} 14 L${tx-1} 1 H${tx+1} L${tx+3} 14 L${tx+17} 64 H${tx+10} L${tx} 42 L${tx-10} 64 Z" fill="#E5483A"/>
+    <rect x="${tx-6}" y="21" width="12" height="4" fill="#fff"/><rect x="${tx-9}" y="33" width="18" height="2.4" fill="#fff"/><rect x="${tx-13}" y="47" width="26" height="2.4" fill="#fff"/>
+    <rect x="${tx-7}" y="25" width="14" height="2" fill="#B8352B"/><path d="M${tx-5} 35.5 L${tx+3} 46.5 M${tx+5} 35.5 L${tx-3} 46.5" stroke="#FFB3AA" stroke-width=".7"/>`;
+  // ворота торії
+  s += `<rect x="398" y="34" width="3.4" height="30" fill="#D93A2F"/><rect x="421" y="34" width="3.4" height="30" fill="#D93A2F"/>
+    <rect x="394" y="37" width="34" height="3" fill="#D93A2F"/><path d="M390 30 Q411 27.5 432 30 L431 33.5 H391 Z" fill="#2B2B3A"/><rect x="392" y="33" width="38" height="2.2" fill="#D93A2F"/>
+    <rect x="409.5" y="34" width="3" height="4" fill="#2B2B3A"/>`;
+  s += sakura(458, 44, 11);
+  return tile(480, 64, s);
+}
+function tokyoBottom(){
+  return tile(140, 40, `<rect width="140" height="40" fill="#EDE4DA"/>
+    ${[[12,30],[56,12],[96,32],[128,16]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="7" ry="3.4" fill="#D3C8BC"/>`).join('')}
+    <rect x="24" y="34" width="16" height="3" fill="#A49A90"/><rect x="29.5" y="24" width="5" height="10" fill="#B5ABA0"/><rect x="25" y="17" width="14" height="8" fill="#B5ABA0"/>
+    <rect x="28.5" y="19" width="7" height="4.5" fill="#FFE07A"/><path d="M22 17 L32 10 L42 17 Z" fill="#9A9086"/><circle cx="32" cy="9" r="1.4" fill="#9A9086"/>
+    ${[66,71,76].map((x,i)=>`<rect x="${x}" y="${4+i*3}" width="3" height="${33-i*3}" rx="1.4" fill="#5DAA5A"/>${[14,24].map(y=>`<rect x="${x-.4}" y="${y}" width="3.8" height="1" fill="#3E8A3E"/>`).join('')}
+      <path d="M${x+3} ${8+i*3} q5 -3 8 0" fill="none" stroke="#5DAA5A" stroke-width="1.4"/>`).join('')}
+    <ellipse cx="110" cy="24" rx="18" ry="7" fill="#9FD3EA" stroke="#B9AEA3" stroke-width="1.5"/>
+    <path d="M102 24 q3 -3 6 0 q-3 3 -6 0 Z M108 24 l2 -2 v4 Z" fill="#FF8A3D"/><path d="M114 22 q3 -2.4 5 0 q-2 2.4 -5 0 Z" fill="#fff"/>
+    ${[[48,6],[86,9],[132,30],[6,8],[60,34]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="2" ry="1.3" fill="#F7A8C4"/>`).join('')}`);
+}
+// Каїр: піраміди Гізи, Сфінкс, пальми, Ніл із вітрильником
+function cairoTop(){
+  let s = '<rect width="480" height="64" fill="#FFEFD2"/><ellipse cx="400" cy="10" rx="16" ry="3.5" fill="#fff"/>';
+  s += palm(18, 34);
+  const pyr = (x, peak, w) => `<path d="M${x-w} 64 L${x} ${peak} L${x+w} 64 Z" fill="#E3B866"/><path d="M${x} ${peak} L${x+w} 64 H${x} Z" fill="#CC9E4F"/>` +
+    [1,2,3].map(k=>{ const y = peak + (64-peak)*k/4, d = w*k/4; return `<path d="M${x-d} ${y} H${x+d}" stroke="#C28F42" stroke-width=".6"/>`; }).join('');
+  s += pyr(110, 8, 58) + pyr(205, 24, 44) + pyr(272, 40, 26);
+  // Сфінкс
+  s += `<path d="M300 64 V56 Q300 52 306 52 H326 V44 Q326 37 332 37 Q338 37 338 44 V50 L343 53 V64 Z" fill="#D9AC63"/>
+    <path d="M326 44 Q332 41 338 44 M326.5 47 H338" stroke="#B98B44" stroke-width=".8" fill="none"/><circle cx="335" cy="44.5" r=".9" fill="#7A5A2A"/>
+    <path d="M306 58 H326" stroke="#B98B44" stroke-width=".8"/>`;
+  // Ніл і вітрильник-фелука
+  s += `<rect x="352" y="56" width="128" height="8" fill="#6FB6D8"/><path d="M360 64 Q380 56 400 64" fill="#4E9F6A"/>
+    <path d="M420 56 H440 L436 60 H424 Z" fill="#8B5A2B"/><path d="M430 56 V34 L444 54 Z" fill="#fff" stroke="#C9B89A" stroke-width=".6"/><path d="M430 34 L420 50 H430" fill="#F4F0E6"/>`;
+  s += palm(372, 40) + palm(462, 32);
+  return tile(480, 64, s);
+}
+function cairoBottom(){
+  return tile(140, 40, `<rect width="140" height="40" fill="#EECF92"/>
+    ${[[10,8],[64,32],[120,6],[96,36]].map(([x,y])=>`<path d="M${x-6} ${y} q6 -3 12 0" fill="none" stroke="#D9B271" stroke-width="1.2"/>`).join('')}
+    <g fill="#C98E4B"><ellipse cx="34" cy="22" rx="12" ry="6"/><ellipse cx="32" cy="16" rx="6" ry="4.5"/>
+      <path d="M44 20 Q49 16 48 8 L52 7 Q53 18 46 24 Z"/><ellipse cx="52.5" cy="7.5" rx="3.4" ry="2.2"/>
+      <rect x="25" y="25" width="2.4" height="12"/><rect x="30" y="25" width="2.4" height="12"/><rect x="38" y="25" width="2.4" height="12"/><rect x="43" y="25" width="2.4" height="12"/></g>
+    <circle cx="53" cy="6.8" r=".7" fill="#4A3020"/><path d="M22 20 q-3 4 -1 8" fill="none" stroke="#A9733A" stroke-width="1.2"/>
+    <rect x="28" y="13" width="9" height="4" rx="1" fill="#D7263D"/>
+    <g transform="translate(84 6)"><rect width="34" height="28" rx="1.5" fill="#D8B77A" stroke="#B6955A" stroke-width="1"/>
+      <path d="M6 7 q4 -4 8 0 q-4 4 -8 0 Z" fill="none" stroke="#5A4020" stroke-width="1.1"/><circle cx="10" cy="7" r="1.2" fill="#5A4020"/><path d="M10 9.6 L8.6 13" stroke="#5A4020" stroke-width="1"/>
+      <path d="M22 4 q3 0 3 3 l-1 4 h3 M21 13 h8" fill="none" stroke="#5A4020" stroke-width="1.1"/>
+      <path d="M6 18 h4 v6 M14 18 l3 6 l3 -6 M24 18 v6 m-2 -3 h4" fill="none" stroke="#5A4020" stroke-width="1.1"/></g>
+    <path d="M126 37 Q122 28 128 22 Q134 28 130 37 Z" fill="#B5643A"/><rect x="125.5" y="19" width="5" height="3" rx="1" fill="#8F4C2A"/>`);
+}
+// Ріо-де-Жанейро: гора Цукрова Голова з канатною дорогою, Корковаду, кольорові будиночки на пагорбі, пляж
+function rioTop(){
+  let s = '<rect width="480" height="64" fill="#CDEEFF"/><ellipse cx="240" cy="9" rx="20" ry="4.5" fill="#fff"/><ellipse cx="420" cy="7" rx="15" ry="3.5" fill="#fff"/>';
+  s += `<path d="M76 64 Q78 22 102 13 Q124 8 132 36 Q136 54 150 64 Z" fill="#4E9F6A"/><path d="M104 14 Q122 10 130 34 Q118 26 108 24 Z" fill="#9AA6A0"/>
+    <path d="M158 64 Q164 40 186 38 Q206 38 214 64 Z" fill="#5FAF63"/>
+    <path d="M104 15 L186 39" stroke="#3A3A4A" stroke-width=".7"/><rect x="141" y="25" width="7" height="5" rx="1" fill="#E0464A"/><path d="M144.5 25 V27.6" stroke="#3A3A4A" stroke-width=".7"/>
+    <path d="M234 64 Q266 42 282 18 Q292 6 302 14 Q320 36 352 64 Z" fill="#3E8E5A"/><path d="M296 10 Q302 12 306 18 Q324 40 352 64 H316 Q312 36 296 10 Z" fill="#357E4E"/>`;
+  const colors = ['#FF6B4A','#FFC93C','#2D9CDB','#FF5D9E','#16A3A0','#B07CD8','#F7E2B5'];
+  s += `<path d="M352 64 Q380 34 420 32 Q452 34 470 64 Z" fill="#6DBE74"/>` +
+    [[398,35],[410,34],[422,35],[434,37],[384,41],[395,41],[406,40],[418,41],[430,42],[442,43],[376,47],[387,46],[398,46],[409,47],[420,46],[431,47],[443,47],[454,48]].map(([x,y],i)=>
+      `<rect x="${x}" y="${y}" width="10" height="7" fill="${colors[i % colors.length]}"/><rect x="${x+2}" y="${y+2}" width="2.4" height="2.4" fill="#fff" opacity=".8"/>`).join('');
+  s += `<rect x="0" y="52" width="480" height="7" fill="#49B4E0"/><path d="M0 52 q10 -2 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0" fill="none" stroke="#fff" stroke-width="1"/>
+    <rect x="0" y="58" width="480" height="6" fill="#F6DFA4"/>`;
+  s += palm(30, 30) + palm(226, 26) + palm(470, 30);
+  return tile(480, 64, s);
+}
+function rioBottom(){
+  // хвилястий чорно-білий тротуар Копакабани, м'яч і морська зірка
+  return tile(140, 40, `<rect width="140" height="40" fill="#FAF7F0"/>
+    <path d="M-5 9 Q12.5 1 30 9 T65 9 T100 9 T135 9 T170 9 M-5 31 Q12.5 23 30 31 T65 31 T100 31 T135 31 T170 31" fill="none" stroke="#2B2B3A" stroke-width="5"/>
+    <circle cx="70" cy="20" r="5" fill="#fff" stroke="#2B2B3A" stroke-width="1"/><path d="M70 17 l2.4 1.8 -1 2.8 h-2.8 l-1 -2.8 Z" fill="#2B2B3A"/>
+    <path d="M118 13 L119.8 17.6 L124.7 17.8 L120.9 20.9 L122.2 25.6 L118 22.9 L113.8 25.6 L115.1 20.9 L111.3 17.8 L116.2 17.6 Z" fill="#FF8A3D" stroke="#E0662A" stroke-width=".6" stroke-linejoin="round"/>`);
+}
 
 // Значок Києва — листок каштана (емодзі такого листка немає): п'ять широких листочків віялом, світліший
 // за ялинку «Лісу», щоб їх не плутати в дрібних значках етапів
@@ -1060,7 +1267,13 @@ const TRACKS = [
   {id:'london', name:'Лондон',  emoji:'🎡', base:6,  road:'#44465A', dash:'rgba(255,255,255,.7)',  edge:'#F2D04B', top:londonTop(), bottom:londonBottom(), fx:'rain'},
   {id:'forest', name:'Ліс',     emoji:'🌲', base:7,  road:'#5A5550', dash:'rgba(255,255,255,.5)',  edge:'#E9E2C8', top:forestTop(), bottom:forestBottom(), fx:'leaves'},
   {id:'desert', name:'Пустеля', emoji:'🏜️', base:10, road:'#7A6458', dash:'#FFC93C',              edge:'#F7E2B5', top:desertTop(), bottom:desertBottom(), fx:'sun'},
-  {id:'arctic', name:'Арктика', emoji:'🧊', base:14, road:'#8DBFDC', dash:'rgba(255,255,255,.95)', edge:'#FFFFFF', top:arcticTop(), bottom:arcticBottom(), fx:'snow'}
+  {id:'arctic', name:'Арктика', emoji:'🧊', base:14, road:'#8DBFDC', dash:'rgba(255,255,255,.95)', edge:'#FFFFFF', top:arcticTop(), bottom:arcticBottom(), fx:'snow'},
+  // Міста світу після «Арктики»: речення з великої літери, цифри й розділові знаки, на останніх трьох — ще й спецсимволи
+  {id:'paris',   name:'Париж',    emoji:'🥐', base:16, road:'#5B5966', dash:'rgba(255,255,255,.6)',  edge:'#E9E0D0', top:parisTop(),   bottom:parisBottom(),   fx:'balloons'},
+  {id:'newyork', name:'Нью-Йорк', emoji:'🗽', base:18, road:'#3A3A48', dash:'#F2C94C',              edge:'#9AA0AE', top:newyorkTop(), bottom:newyorkBottom(), fx:'stars'},
+  {id:'tokyo',   name:'Токіо',    emoji:'🌸', base:20, road:'#55505E', dash:'rgba(255,255,255,.7)',  edge:'#F7C6D6', top:tokyoTop(),   bottom:tokyoBottom(),   fx:'petals'},
+  {id:'cairo',   name:'Каїр',     emoji:'🐪', base:22, road:'#8A6E52', dash:'#FFE08A',              edge:'#F3D9A4', top:cairoTop(),   bottom:cairoBottom(),   fx:'sand'},
+  {id:'rio',     name:'Ріо',      emoji:'🦜', base:24, road:'#4A5A6A', dash:'rgba(255,255,255,.8)',  edge:'#F6DFA4', top:rioTop(),     bottom:rioBottom(),     fx:'confetti'}
 ];
 const trackIdx = id => TRACKS.findIndex(t=>t.id===id);
 
@@ -1068,8 +1281,11 @@ const trackIdx = id => TRACKS.findIndex(t=>t.id===id);
 
 
 /* ================= Складність: траса → текст, автівка → суперник ================= */
-const TRACK_LEVEL = { city:'home', london:BOOST ? 'words' : 'top', forest:'words', desert:'sentences', arctic:'long' };
-const LEVEL_NAME = { home:'основний ряд', top:'основний і верхній ряд', words:'слова', sentences:BOOST ? 'речення' : 'фрази', long:BOOST ? 'довгі речення' : 'більше фраз', punct:'розділові знаки', ukpunct:'розділові знаки', digits:'цифри', code:'код', drill:'слабкі клавіші' };
+// У кожного міста світу свій рівень тексту — речення про це місто (TEXTS[lang][id])
+const TRACK_LEVEL = { city:'home', london:BOOST ? 'words' : 'top', forest:'words', desert:'sentences', arctic:'long',
+                      paris:'paris', newyork:'newyork', tokyo:'tokyo', cairo:'cairo', rio:'rio' };
+const LEVEL_NAME = { home:'основний ряд', top:'основний і верхній ряд', words:'слова', sentences:BOOST ? 'речення' : 'фрази', long:BOOST ? 'довгі речення' : 'більше фраз', punct:'розділові знаки', ukpunct:'розділові знаки', digits:'цифри', code:'код', drill:'слабкі клавіші',
+                     paris:'цифри й знаки', newyork:'цифри й знаки', tokyo:'спецсимволи', cairo:'спецсимволи', rio:'спецсимволи' };
 const stageLevel = ([track, , level]) => level || TRACK_LEVEL[track];
 const CAR_ORDER = ['beetle','taxi','jeep','monster','sport','f1'];
 const CAR_CPM = BOOST ? { beetle:35, taxi:50, jeep:65, monster:80, sport:100, f1:125 }
@@ -1133,7 +1349,12 @@ const UNLOCKS = [
   { kind:'car',   id:'monster', at:300 },
   { kind:'track', id:'arctic',  at:420 },
   { kind:'car',   id:'sport',   at:560 },
-  { kind:'car',   id:'f1',      at:750 }
+  { kind:'car',   id:'f1',      at:750 },
+  { kind:'track', id:'paris',   at:850 },
+  { kind:'track', id:'newyork', at:1000 },
+  { kind:'track', id:'tokyo',   at:1200 },
+  { kind:'track', id:'cairo',   at:1400 },
+  { kind:'track', id:'rio',     at:1600 }
 ];
 const unlockAt = (kind, id) => UNLOCKS.find(u=>u.kind===kind && u.id===id).at;
 const isOpen = (kind, id, n = profile.neurons) => n >= unlockAt(kind, id);
@@ -1328,11 +1549,18 @@ const STICKERS = [
   { id:'record',  ico:'📈', name:'Новий рекорд',     how:'Побити свій рекорд швидкості на трасі',             test:r=>r.newRecord },
   { id:'drill',   ico:'💪', name:'Над помилками',    how:'Потренувати клавіші, на яких були помилки',          test:r=>r.drill },
   { id:'langs',   ico:'🌍', name:'Дві мови',         how:'Перемогти українською й англійською',               count:p=>wonOn(p, 0), need:2 },
-  { id:'tracks',  ico:'🗺️', name:'Мандрівник',       how:"Перемогти на всіх п'яти трасах",                    count:p=>wonOn(p, 1), need:5 },
+  { id:'tracks',  ico:'🗺️', name:'Мандрівник',       how:"Перемогти на п'яти різних трасах",                  count:p=>wonOn(p, 1), need:5 },
   { id:'races',   ico:'🚗', name:'Справжній гонщик', how:'Проїхати 25 заїздів',                               count:p=>p.races, need:25 },
   { id:'days',    ico:'📅', name:'Щодня потроху',    how:'Грати в 5 різних днів',                             count:p=>Object.keys(p.hist || {}).length, need:5 },
   { id:'medal',   ico:'🎖️', name:'Призер',           how:'Пройти всі етапи змагання й отримати медаль',       count:p=>Object.keys(p.comps).length, need:1 },
   { id:'neurons', ico:'🧠', name:'Розумник',         how:'Зібрати 1000 нейрончиків',                          count:p=>p.neurons, need:1000 },
+  // за траси міст світу і знаки (r.text — текст заїзду)
+  { id:'digits',  ico:'🔢', name:'Друг цифр',        how:'Обігнати робота в заїзді з цифрами (траси від «Парижа»)', test:r=>r.won && /\d/.test(r.text) },
+  { id:'marks',   ico:'❗', name:'Знаки на місці',   how:'Надрукувати текст із розділовими знаками без жодної помилки', test:r=>r.errors === 0 && /[,!?:;"()-]/.test(r.text) },
+  { id:'symbols', ico:'🕵️', name:'Спецагент',        how:'Обігнати робота в заїзді зі спецсимволами (траси «Токіо», «Каїр», «Ріо»)', test:r=>r.won && /[№%*()_₴@#$&+=/]/.test(r.text) },
+  { id:'world',   ico:'✈️', name:'Навколо світу',    how:'Перемогти на всіх десяти трасах',                   count:p=>wonOn(p, 1), need:10 },
+  { id:'marathon',ico:'🏃', name:'Марафонець',       how:'Проїхати 100 заїздів',                              count:p=>p.races, need:100 },
+  { id:'brain',   ico:'💡', name:'Мегамозок',        how:'Зібрати 3000 нейрончиків',                          count:p=>p.neurons, need:3000 },
 ];
 // Наліпки з count збирають за кілька заїздів: скільки вже є з need (лише для ще не отриманих)
 const stickerProgress = st=>st.count && !profile.stickers[st.id] ? Math.min(st.count(profile) || 0, st.need) : 0;
@@ -1450,18 +1678,37 @@ function applyTrack(id){
     fxEl.appendChild(d);
   }
   if(t.fx === 'snow' || t.fx === 'leaves'){
-    const n = t.fx === 'snow' ? 26 : 9;
+    const n = t.fx === 'snow' ? 64 : 9;
     for(let i=0;i<n;i++){
       const f = document.createElement('div');
       f.className = t.fx === 'snow' ? 'flake' : 'leaf';
       f.style.left = (Math.random()*105) + '%';
       f.style.animationDuration = (t.fx === 'snow' ? 4 + Math.random()*4 : 6 + Math.random()*5) + 's';
       f.style.animationDelay = (-Math.random()*8) + 's';
-      if(t.fx === 'snow'){ const s = 3 + Math.random()*4; f.style.width = f.style.height = s + 'px'; }
+      if(t.fx === 'snow' && i % 3 === 0){ f.className = 'flake big'; f.textContent = '❄'; f.style.fontSize = (12 + Math.random()*9) + 'px'; }
+      else if(t.fx === 'snow'){ const s = 3 + Math.random()*5; f.style.width = f.style.height = s + 'px'; }
       else f.style.background = ['#E8A33D','#D9653B','#C9B03A'][i%3];
       fxEl.appendChild(f);
     }
   }
+  // Ефекти міст світу: n частинок класу cls, set — розкид і колір кожної
+  const spray = (cls, n, set) => { for(let i=0;i<n;i++){ const f = document.createElement('div'); f.className = cls; set(f, i); fxEl.appendChild(f); } };
+  const BRIGHT = ['#FF6B4A','#FFC93C','#2D9CDB','#FF5D9E','#16A3A0','#6C5CE7'];
+  if(t.fx === 'balloons') spray('balloon', 7, (f, i)=>{
+    f.style.left = (Math.random()*95) + '%'; f.style.background = BRIGHT[i % BRIGHT.length];
+    f.style.animationDuration = (11 + Math.random()*7) + 's'; f.style.animationDelay = (-Math.random()*16) + 's'; });
+  if(t.fx === 'stars') spray('star', 22, f=>{
+    f.style.left = (Math.random()*100) + '%'; f.style.top = `calc(var(--scene-top) * ${(.04 + Math.random()*.4).toFixed(2)})`;
+    f.style.animationDuration = (.8 + Math.random()*1.6) + 's'; f.style.animationDelay = (-Math.random()*2) + 's'; });
+  if(t.fx === 'petals') spray('petal', 16, (f, i)=>{
+    f.style.left = (Math.random()*110) + '%'; f.style.background = ['#F7A8C4','#F9C3D5','#F49AB8'][i % 3];
+    f.style.animationDuration = (6 + Math.random()*5) + 's'; f.style.animationDelay = (-Math.random()*10) + 's'; });
+  if(t.fx === 'sand') spray('grain', 18, f=>{
+    f.style.top = (Math.random()*100) + '%'; f.style.width = (8 + Math.random()*16) + 'px';
+    f.style.animationDuration = (2.2 + Math.random()*2) + 's'; f.style.animationDelay = (-Math.random()*4) + 's'; });
+  if(t.fx === 'confetti') spray('confetti', 26, (f, i)=>{
+    f.style.left = (Math.random()*105) + '%'; f.style.background = BRIGHT[i % BRIGHT.length];
+    f.style.animationDuration = (3.5 + Math.random()*3) + 's'; f.style.animationDelay = (-Math.random()*6) + 's'; });
 }
 // Табличка біля автівки: бейджик + ім'я
 const nameTag = (name, badge) => `<span class="tag">${badgeHTML(badge)}${esc(name)}</span>`;
@@ -1880,8 +2127,8 @@ function shuffle(a){
 const TEXT_FIT = { sec:80, maxChars:160 };   // 160 знаків — близько 4 рядків: клавіатура лишається на екрані
 function makeText(lang, level, pace = 0){
   const src = TEXTS[lang][level === 'long' || level === 'sentences' ? (BOOST ? 'full' : 'sentences') : level];
-  const n = (BOOST ? { home:8, top:7, words:7, sentences:2, long:3, punct:3, ukpunct:3, digits:3, code:3 }
-                   : { home:5, top:4, words:4, sentences:2, long:3, punct:2, ukpunct:2, digits:2, code:2 })[level];
+  const n = (BOOST ? { home:8, top:7, words:7, sentences:2, long:3, punct:3, ukpunct:3, digits:3, code:3, paris:3, newyork:3, tokyo:3, cairo:3, rio:3 }
+                   : { home:5, top:4, words:4, sentences:2, long:3, punct:2, ukpunct:2, digits:2, code:2, paris:2, newyork:2, tokyo:2, cairo:2, rio:2 })[level];
   const list = shuffle(src.slice());
   const target = Math.min(TEXT_FIT.maxChars, pace * TEXT_FIT.sec / 60);
   let k = n;
@@ -2298,7 +2545,7 @@ function finish(){
   profile.neurons += gain;
   const opened = UNLOCKS.filter(u=>u.at > before && u.at <= profile.neurons);
   // Наліпки
-  const run = { won:won && !race.duel && !race.klass, errors:race.errors, topStreak:race.topStreak, newRecord:record && prevBest > 0, drill:!!race.drill };
+  const run = { won:won && !race.duel && !race.klass, errors:race.errors, topStreak:race.topStreak, newRecord:record && prevBest > 0, drill:!!race.drill, text:race.text };
   const earned = STICKERS.filter(st=>!profile.stickers[st.id] && (st.test ? st.test(run) : st.count(profile) >= st.need));
   earned.forEach(st=>profile.stickers[st.id] = today());
   saveStore();
