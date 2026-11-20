@@ -1680,7 +1680,7 @@ function applyTrack(id){
     fxEl.appendChild(d);
   }
   if(t.fx === 'snow' || t.fx === 'leaves'){
-    const n = t.fx === 'snow' ? 64 : 9;
+    const n = t.fx === 'snow' ? 36 : 9;
     for(let i=0;i<n;i++){
       const f = document.createElement('div');
       f.className = t.fx === 'snow' ? 'flake' : 'leaf';
